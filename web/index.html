@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backstage</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════ consent / capture modal ══════════════════════════ -->
+<div class="scrim" id="scrim">
+  <div class="consent">
+    <div class="consent-scan"></div>
+    <div class="consent-head">
+      <span class="rec-dot"></span>
+      <span>BACKSTAGE COMPANION</span>
+      <span class="host-only">OPERATOR&nbsp;ONLY</span>
+    </div>
+    <h1>Pick a surface to observe</h1>
+    <p class="consent-sub">
+      Backstage attaches as a silent observer. The people on the other side see their meeting,
+      their checkout, their queue exactly as they do today — this console renders only for you.
+    </p>
+
+    <div class="surfpick" id="surfPick"></div>
+
+    <ul class="consent-list">
+      <li><b>Frames</b><span>keyframe capture on detected moments, not continuous recording</span></li>
+      <li><b>Presence</b><span>arrival, exit, dwell and stage per actor</span></li>
+      <li><b>Signals</b><span>messages, reactions, deep interactions, stage changes</span></li>
+      <li><b>Derived</b><span>focus estimate, churn hazard, outcome propensity</span></li>
+    </ul>
+    <div class="consent-foot">
+      <label class="chk"><input type="checkbox" id="cAnon" checked><span>Pseudonymise identities in the dataset</span></label>
+      <div class="consent-btns">
+        <button class="btn ghost" id="btnSkip">Observe silently</button>
+        <button class="btn primary" id="btnObserve">Start observing</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ top bar ══════════════════════════════ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"></span>
+    <span class="bname">Backstage</span>
+    <span class="tag">work companion</span>
+  </div>
+
+  <div class="sessionline">
+    <span class="pill live" id="recPill"><span class="rec-dot"></span>OBSERVING</span>
+    <select id="surfSel" class="surfsel" title="Surface"></select>
+    <span class="sclock" id="sClock">00:00</span>
+    <span class="sphase" id="sPhase">—</span>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="live" class="on">Live</button>
+    <button data-tab="dataset">Dataset</button>
+    <button data-tab="lab">Experiments</button>
+    <button data-tab="skills">Skills</button>
+    <button data-tab="roi">ROI</button>
+    <button data-tab="mcp">MCP</button>
+    <button data-tab="meeting" id="tabMeeting" style="color:#34d399">🎥 Meeting</button>
+  </nav>
+
+  <div class="speedbox">
+    <button class="spd" data-spd="1">1×</button>
+    <button class="spd on" data-spd="4">4×</button>
+    <button class="spd" data-spd="16">16×</button>
+    <button class="btn tiny" id="btnReset">Restart</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ LIVE ═══════════════════════════════ -->
+<main class="view on" id="v-live">
+  <section class="stage">
+    <div class="stagehead">
+      <span class="zoomdot"></span>
+      <span><b id="roomCount">0</b> <span id="actorWord">actors</span> live · <span id="surfWord">—</span></span>
+      <span class="attendee-note" id="theirView">their view — no companion UI visible here</span>
+    </div>
+
+    <div class="slide" id="slide">
+      <div class="slide-kicker" id="slideKicker">STAGE</div>
+      <div class="slide-title" id="slideTitle">Waiting to start…</div>
+      <div class="slide-bars"><i></i><i></i><i></i></div>
+      <div class="presenter" id="presenter">
+        <div class="pav" id="pavInit">DK</div>
+        <div><b id="pavName">Dana K.</b><span id="pavRole">presenting · unmuted</span></div>
+        <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+
+    <div class="canvas" id="canvas">
+      <div class="tiles" id="tiles"></div>
+      <div class="flow hidden" id="flow"></div>
+    </div>
+
+    <div class="chatrail">
+      <div class="chathead" id="chatHead">Signals</div>
+      <div class="chatlist" id="chatList"></div>
+    </div>
+  </section>
+
+  <aside class="hud" id="hud">
+    <div class="hud-scan" id="hudScan"></div>
+    <div class="hudhead">
+      <span class="rec-dot"></span>
+      <span>COMPANION CONSOLE</span>
+      <span class="host-only">visible only to you</span>
+    </div>
+
+    <div class="vitals">
+      <div class="vital"><span id="vRoomL">Live</span><b id="vRoom">0</b><i id="vRoomD">&nbsp;</i></div>
+      <div class="vital"><span>Retention</span><b id="vRet">—</b><i>of peak</i></div>
+      <div class="vital"><span>Focus</span><b id="vAttn">—</b><i id="vAttnD">&nbsp;</i></div>
+      <div class="vital"><span id="vMqlL">Outcomes</span><b id="vMql">0</b><i>propensity</i></div>
+    </div>
+
+    <div class="spark">
+      <div class="sparkhead"><span id="focusLabel">Cohort focus</span><span id="sparkNow">—</span></div>
+      <svg id="sparkSvg" viewBox="0 0 300 60" preserveAspectRatio="none">
+        <path id="sparkArea" fill="url(#sg)" d=""></path>
+        <path id="sparkLine" fill="none" stroke="#35d0ff" stroke-width="1.6" d=""></path>
+        <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#35d0ff" stop-opacity=".38"/>
+          <stop offset="100%" stop-color="#35d0ff" stop-opacity="0"/>
+        </linearGradient></defs>
+      </svg>
+    </div>
+
+    <div class="hudsec">
+      <h4>At risk right now <span class="cnt" id="riskCnt">0</span></h4>
+      <div class="risklist" id="riskList"><div class="empty">Nobody flagged.</div></div>
+    </div>
+
+    <div class="hudsec">
+      <h4>Companion nudges <span class="cnt" id="nudgeCnt">0</span></h4>
+      <div class="nudges" id="nudgeList"><div class="empty">Watching…</div></div>
+    </div>
+
+    <div class="hudsec">
+      <h4>Captured moments <span class="cnt" id="capCnt">0</span></h4>
+      <div class="caps" id="capList"></div>
+    </div>
+
+    <div class="ticker" id="ticker"></div>
+  </aside>
+</main>
+
+<!-- ═════════════════════════════ DATASET ═════════════════════════════ -->
+<main class="view" id="v-dataset">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Observation dataset</h2>
+        <p>Every signal the companion sees becomes one labelled row, and all six surfaces share
+           this schema. Labels are back-filled when the run closes, which is what makes the file
+           trainable rather than a log.</p>
+      </div>
+      <div class="panebtns">
+        <select id="dsFilter"></select>
+        <button class="btn" id="btnJsonl">Export JSONL</button>
+        <button class="btn" id="btnCsv">Export CSV</button>
+      </div>
+    </div>
+    <div class="dsstats" id="dsStats"></div>
+    <div class="tablewrap"><table class="dstable">
+      <thead><tr><th>ts</th><th>type</th><th>actor</th><th>stage</th><th>payload</th><th>features</th><th>label</th></tr></thead>
+      <tbody id="dsBody"></tbody>
+    </table></div>
+    <div class="schema">
+      <h4>Row schema</h4>
+      <pre id="schemaBox"></pre>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════════════ EXPERIMENTS ═══════════════════════════ -->
+<main class="view" id="v-lab">
+  <div class="pane lab">
+    <div class="panehead">
+      <div>
+        <h2>Experiment lab</h2>
+        <p>Pick levers, replay the run <b>N</b> times on matched seeds, and read the mean lift with
+           a bootstrap 90% interval on that mean. Only intervals clear of zero may become skills.</p>
+      </div>
+      <div class="panebtns">
+        <label class="nlab">runs <input type="number" id="expN" value="120" min="20" max="600" step="20"></label>
+        <button class="btn primary" id="btnRun">Run experiment</button>
+      </div>
+    </div>
+
+    <div class="labgrid">
+      <div class="levers" id="levers"></div>
+      <div class="expout">
+        <div id="expEmpty" class="empty big">Select one or more levers, then run.</div>
+        <div id="expResult" class="hidden"></div>
+        <div class="explog">
+          <h4>Experiment log</h4>
+          <div id="expLog"><div class="empty">No experiments yet.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═════════════════════════════ SKILLS ═════════════════════════════ -->
+<main class="view" id="v-skills">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Skill library</h2>
+        <p>A skill is an experiment that survived. It carries its own evidence, arms itself on a
+           trigger, and can be tested against a different surface than the one it was learned on.</p>
+      </div>
+      <div class="panebtns">
+        <button class="btn" id="btnRetest">Re-test this surface</button>
+      </div>
+    </div>
+    <div id="transferOut"></div>
+    <div class="skillgrid" id="skillGrid"></div>
+  </div>
+</main>
+
+<!-- ══════════════════════════════ ROI ══════════════════════════════ -->
+<main class="view" id="v-roi">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Compounding</h2>
+        <p>Baseline versus the same run with the armed library, over <b id="roiN">120</b>
+           paired runs per arm.</p>
+      </div>
+      <div class="panebtns">
+        <button class="btn" id="btnPortfolio">All surfaces</button>
+        <button class="btn primary" id="btnRoi">This surface</button>
+      </div>
+    </div>
+    <div id="roiBody"><div class="empty big">Run a report to compare arms.</div></div>
+  </div>
+</main>
+
+<!-- ══════════════════════════════ MCP ══════════════════════════════ -->
+<main class="view" id="v-mcp">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Web MCP surface</h2>
+        <p>Everything on the previous five tabs is a tool call, and every tool takes a
+           <code>surface</code>. This console watches one at a time; an agent can drive all six.
+           Endpoint <code id="mcpEp">POST /mcp</code></p>
+      </div>
+      <div class="panebtns"><span class="pill" id="mcpState">checking…</span></div>
+    </div>
+    <div class="mcpgrid">
+      <div><h4>Tools</h4><div class="toollist" id="toolList"></div></div>
+      <div><h4>JSON-RPC traffic</h4><div class="rpclog" id="rpcLog"><div class="empty">No calls yet.</div></div></div>
+    </div>
+  </div>
+</main>
+
+
+<!-- ══════════════════════════ MEETING TAB ══════════════════════════ -->
+<main class="view" id="v-meeting">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Real Meeting Room</h2>
+        <p>Host or join a real WebRTC video meeting. Participant events feed into the live observation pipeline — Dataset, Experiments, and Skills tabs update with real data.</p>
+      </div>
+      <div class="panebtns">
+        <span class="pill" id="llmStatusPill" style="background:#1e2330;border:1px solid #2a3040">checking AI…</span>
+      </div>
+    </div>
+
+    <!-- Create meeting section -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px 20px">
+      <div style="background:#1a2035;border:1px solid #2a3040;border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 12px;font-size:14px;color:#e2e8f0">🎬 Host a Meeting</h3>
+        <p style="font-size:12px;color:#64748b;margin-bottom:14px">Create a new room and invite participants. Their join/leave events become real observation data.</p>
+        <input id="hostName" placeholder="Your name" style="width:100%;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+        <button class="btn primary" id="btnCreateMeeting" style="width:100%;padding:9px">Create Meeting Room</button>
+        <div id="meetingCredentials" style="margin-top:14px;display:none">
+          <div style="background:#0d0f14;border-radius:8px;padding:12px;font-family:monospace;font-size:12px">
+            <div style="color:#64748b;margin-bottom:4px">MEETING ID</div>
+            <div id="credMeetingId" style="color:#4f8ef7;font-weight:700;margin-bottom:10px"></div>
+            <div style="color:#64748b;margin-bottom:4px">PASSWORD</div>
+            <div id="credPassword" style="color:#34d399;font-weight:700;margin-bottom:10px"></div>
+            <div style="color:#64748b;margin-bottom:4px">SHARE LINK</div>
+            <div id="credShareLink" style="color:#fbbf24;word-break:break-all"></div>
+          </div>
+          <a id="btnOpenMeeting" href="/meeting" target="_blank" style="display:block;margin-top:10px;background:#34d399;color:#000;text-align:center;padding:9px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px">Open Meeting Room →</a>
+        </div>
+      </div>
+
+      <div style="background:#1a2035;border:1px solid #2a3040;border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 12px;font-size:14px;color:#e2e8f0">🚪 Join a Meeting</h3>
+        <p style="font-size:12px;color:#64748b;margin-bottom:14px">Enter a Meeting ID and password to join an existing room.</p>
+        <input id="joinNameConsole" placeholder="Your name" style="width:100%;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+        <input id="joinIdConsole" placeholder="Meeting ID" style="width:100%;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+        <a id="btnJoinConsole" href="/meeting" target="_blank" style="display:block;background:#4f8ef7;color:#fff;text-align:center;padding:9px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px">Join in New Tab →</a>
+      </div>
+    </div>
+
+    <!-- Active rooms -->
+    <div style="padding:0 20px 20px">
+      <h3 style="font-size:14px;margin-bottom:10px">Active Rooms</h3>
+      <div id="activeRooms" style="font-size:13px;color:#64748b">No active rooms</div>
+      <button id="btnRefreshRooms" class="btn ghost" style="margin-top:8px;font-size:12px">Refresh</button>
+    </div>
+
+    <!-- AI status -->
+    <div style="padding:0 20px 20px">
+      <h3 style="font-size:14px;margin-bottom:10px">AI Nudge Status</h3>
+      <div id="aiStatusDetail" style="background:#1a2035;border:1px solid #2a3040;border-radius:8px;padding:14px;font-size:13px">
+        <div style="color:#64748b">Checking AI configuration…</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ AI Chat Widget (floating) ══════════════════ -->
+<!-- The AI chat widget floats over every tab, accessible any time -->
+<div id="aiWidget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+  <!-- Toggle button -->
+  <button id="aiWidgetBtn" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#4f8ef7,#818cf8);border:none;cursor:pointer;font-size:22px;box-shadow:0 4px 20px rgba(79,142,247,0.4);transition:all 0.2s" title="AI Assistant">🤖</button>
+
+  <!-- Chat panel -->
+  <div id="aiWidgetPanel" style="display:none;position:absolute;bottom:60px;right:0;width:340px;background:#151820;border:1px solid #2a3040;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.6);overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid #2a3040;display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">🤖</span>
+      <div>
+        <div style="font-weight:700;font-size:14px">AI Assistant</div>
+        <div id="aiWidgetStatus" style="font-size:11px;color:#64748b">Initializing…</div>
+      </div>
+      <button id="aiWidgetClose" style="margin-left:auto;background:none;border:none;color:#64748b;cursor:pointer;font-size:18px">✕</button>
+    </div>
+    <div id="aiWidgetMessages" style="height:260px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:13px;color:#64748b;text-align:center">Ask me anything about the current session, surface data, or how to use Backstage.</div>
+    </div>
+    <div style="padding:10px;border-top:1px solid #2a3040;display:flex;gap:6px">
+      <input id="aiWidgetInput" placeholder="Ask about this session…" style="flex:1;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;outline:none">
+      <button id="aiWidgetSend" style="background:#4f8ef7;color:#fff;border:none;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px">→</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./app.js"></script>
+<script type="module" src="./ai-widget.js"></script>
+</body>
+</html>

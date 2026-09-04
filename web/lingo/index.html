@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lingo — Universal Knowledge Explorer</title>
+<meta name="description" content="Learn anything in any language. AI agents build visual knowledge maps for you using WebMCP tools.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════ HERO HEADER ══════════════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-logo">🌐</span>
+      <span class="brand-name">Lingo</span>
+      <span class="brand-tagline">Universal Knowledge Explorer</span>
+    </div>
+    <div class="header-right">
+      <div class="webmcp-badge" id="webmcpBadge">
+        <span class="badge-dot"></span>
+        <span id="webmcpStatus">Connecting WebMCP…</span>
+      </div>
+      <button class="btn btn-ghost" id="btnRunTests">🧪 Run Tests</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ MAIN LAYOUT ══════════════════════════ -->
+<main class="main">
+
+  <!-- ── Left Panel: Input + Controls ── -->
+  <aside class="panel panel-left">
+    <div class="panel-section">
+      <h2 class="section-title">📚 Explore Any Topic</h2>
+      <p class="section-sub">Type in any language — your AI agent will build a knowledge map for you.</p>
+
+      <!-- Language selector -->
+      <div class="lang-row">
+        <label class="field-label">Your language</label>
+        <select id="langSelect" class="select">
+          <option value="en">🇬🇧 English</option>
+          <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+          <option value="es">🇪🇸 Español (Spanish)</option>
+          <option value="ar">🇸🇦 العربية (Arabic)</option>
+          <option value="fr">🇫🇷 Français (French)</option>
+          <option value="de">🇩🇪 Deutsch (German)</option>
+          <option value="ja">🇯🇵 日本語 (Japanese)</option>
+          <option value="zh">🇨🇳 中文 (Chinese)</option>
+          <option value="pt">🇧🇷 Português (Portuguese)</option>
+          <option value="ru">🇷🇺 Русский (Russian)</option>
+          <option value="ko">🇰🇷 한국어 (Korean)</option>
+          <option value="tr">🇹🇷 Türkçe (Turkish)</option>
+          <option value="fa">🇮🇷 فارسی (Persian)</option>
+          <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+          <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+          <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
+          <option value="bn">🇧🇩 বাংলা (Bengali)</option>
+          <option value="id">🇮🇩 Bahasa Indonesia</option>
+          <option value="nl">🇳🇱 Nederlands (Dutch)</option>
+          <option value="vi">🇻🇳 Tiếng Việt (Vietnamese)</option>
+        </select>
+      </div>
+
+      <!-- Topic input -->
+      <div class="field-group">
+        <label class="field-label">Topic to explore</label>
+        <textarea id="topicInput" class="textarea" rows="3"
+          placeholder="e.g. Volcanoes, بیماری‌های برنج, फोटोसिंथेसिस, Cambio climático…"></textarea>
+      </div>
+
+      <!-- Complexity level -->
+      <div class="field-group">
+        <label class="field-label">Explanation level</label>
+        <div class="pill-row">
+          <button class="pill" data-level="child">🧒 Child</button>
+          <button class="pill on" data-level="general">👤 General</button>
+          <button class="pill" data-level="expert">🎓 Expert</button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <button class="btn btn-primary btn-full" id="btnExplore">
+        <span class="btn-icon">🔍</span> Explore & Build Map
+      </button>
+      <button class="btn btn-secondary btn-full" id="btnQuiz" style="margin-top:8px" disabled>
+        <span class="btn-icon">❓</span> Generate Quiz
+      </button>
+      <button class="btn btn-secondary btn-full" id="btnExport" style="margin-top:8px" disabled>
+        <span class="btn-icon">📤</span> Export Knowledge
+      </button>
+    </div>
+
+    <!-- WebMCP tools list -->
+    <div class="panel-section">
+      <h3 class="section-title" style="font-size:13px">🔧 Available WebMCP Tools</h3>
+      <div id="toolsList" class="tools-list"></div>
+    </div>
+  </aside>
+
+  <!-- ── Center: Knowledge Graph ── -->
+  <section class="panel panel-center">
+    <!-- Graph header -->
+    <div class="graph-header">
+      <div id="graphTitle" class="graph-title">Start by exploring a topic →</div>
+      <div class="graph-controls">
+        <button class="icon-btn" id="btnZoomIn" title="Zoom in">＋</button>
+        <button class="icon-btn" id="btnZoomOut" title="Zoom out">－</button>
+        <button class="icon-btn" id="btnCenter" title="Center">⊙</button>
+      </div>
+    </div>
+
+    <!-- The knowledge graph canvas -->
+    <div class="graph-area" id="graphArea">
+      <div class="graph-empty" id="graphEmpty">
+        <div class="empty-icon">🗺️</div>
+        <div class="empty-title">Your knowledge map will appear here</div>
+        <div class="empty-sub">Enter a topic and click "Explore & Build Map"<br>Works in any language — no technical knowledge needed</div>
+      </div>
+      <div id="graphCanvas" class="graph-canvas" style="display:none"></div>
+    </div>
+
+    <!-- Quiz panel (shown after generating quiz) -->
+    <div id="quizPanel" class="quiz-panel" style="display:none">
+      <div class="quiz-header">
+        <span>❓ Knowledge Quiz</span>
+        <button class="icon-btn" id="btnCloseQuiz">✕</button>
+      </div>
+      <div id="quizContent" class="quiz-content"></div>
+    </div>
+  </section>
+
+  <!-- ── Right Panel: Agent Activity + Summary ── -->
+  <aside class="panel panel-right">
+    <div class="panel-section" style="flex:0">
+      <h2 class="section-title">🤖 Agent Activity</h2>
+      <p class="section-sub" id="agentStatusText">Waiting for a topic…</p>
+    </div>
+
+    <div class="activity-feed" id="activityFeed">
+      <div class="activity-empty">
+        <span>Agent activity will appear here as it calls WebMCP tools</span>
+      </div>
+    </div>
+
+    <!-- Summary box -->
+    <div class="summary-box" id="summaryBox" style="display:none">
+      <div class="summary-header">
+        <span>📝 Summary</span>
+        <span id="summaryLang" class="summary-lang"></span>
+      </div>
+      <div id="summaryContent" class="summary-content"></div>
+    </div>
+
+    <!-- Export modal -->
+    <div class="export-panel" id="exportPanel" style="display:none">
+      <div class="export-header">
+        <span>📤 Export Knowledge</span>
+        <button class="icon-btn" id="btnCloseExport">✕</button>
+      </div>
+      <div class="export-options">
+        <button class="export-btn" data-fmt="markdown">📄 Markdown</button>
+        <button class="export-btn" data-fmt="json">{ } JSON</button>
+        <button class="export-btn" data-fmt="flashcards">🃏 Flashcards</button>
+        <button class="export-btn" data-fmt="outline">📋 Outline</button>
+      </div>
+      <textarea id="exportOutput" class="export-output" readonly></textarea>
+      <button class="btn btn-primary" id="btnCopyExport">📋 Copy to Clipboard</button>
+    </div>
+  </aside>
+</main>
+
+<!-- ══════════════════════════ TEST SUITE MODAL ══════════════════════════ -->
+<div class="modal-scrim" id="testModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span>🧪 WebMCP Test Suite</span>
+      <button class="icon-btn" id="btnCloseTests">✕</button>
+    </div>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:16px">
+      Tests all 8 WebMCP tools across 4 scenarios including multilingual, child-level, and expert-level queries.
+    </p>
+    <div id="testResults" class="test-results"></div>
+    <button class="btn btn-primary" id="btnStartTests">▶ Run All Tests</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════ SCRIPTS ══════════════════════════ -->
+<script type="module" src="webmcp.js"></script>
+<script type="module" src="ui.js"></script>
+</body>
+</html>
