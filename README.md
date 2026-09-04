@@ -19,6 +19,19 @@ Four things, in one loop, on six surfaces:
 
 Everything above is an MCP tool, and every tool takes a `surface`.
 
+## Why WebMCP fits this project
+
+Meeting participants create the evidence through ordinary work: joining, speaking, chatting,
+reacting, and leaving. WebMCP lets an agent inspect that live evidence through typed tools,
+ask for the right slice of the labelled dataset, and compare an intervention without taking
+control away from the people in the meeting. People create the signals; agents turn those
+signals into analysis, recommendations, experiments, and reusable skills.
+
+The live meeting room is available at `/meeting`, while the operator console and its WebMCP
+endpoint are available at `/` and `/mcp`. The meeting event feed is real WebRTC plus Socket.io;
+the six-surface experiment lab remains explicitly labelled as a calibrated model rather than
+measured production results.
+
 ## Why one model covers all six
 
 Each surface turns out to be the same shape underneath: **a cohort of actors moves through
