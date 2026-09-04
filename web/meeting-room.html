@@ -294,6 +294,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <button class="tb-btn" id="btnRoi" style="display:none">📊 ROI</button>
     <button class="tb-btn" id="btnNudge" style="display:none">🤖 Nudge</button>
     <button class="tb-btn" id="btnOpenTabs" style="display:none" title="Open five attendee tabs">＋5 Tabs</button>
+    <button class="tb-btn" id="btnEnd" style="display:none">End</button>
     <button class="tb-btn tb-leave" id="btnLeaveTop">Leave</button>
   </header>
 
@@ -473,6 +474,7 @@ async function join() {
       $('btnRoi').style.display = 'inline';
       $('btnNudge').style.display = 'inline';
       $('btnOpenTabs').style.display = 'inline';
+      $('btnEnd').style.display = 'inline';
     }
 
     // Add local video tile
@@ -562,6 +564,11 @@ async function join() {
     };
     $('btnRoi').onclick = () => $('roiPanel').classList.toggle('show');
     $('btnOpenTabs').onclick = () => openAttendeeTabs();
+    $('btnEnd').onclick = () => {
+      if (window.confirm('End this meeting and generate the analysis?')) {
+        socket.emit('host_control', { action: 'end_meeting', meetingId });
+      }
+    };
   });
 }
 
