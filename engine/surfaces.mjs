@@ -104,7 +104,7 @@ export const checkout = withDynamics({
     price_check: { label: 'Price checking', weight: 0.18, dropMult: 1.65, intent: 0.09, focus: 0.5, color: '#5b4bb8' },
   },
   stages: [
-    { id: 'cart', label: 'Cart review', headline: '3 items · $214.00 subtotal', from: 0, to: 3, drop: 0.0115, focus: 0.010, interactive: false },
+    { id: 'cart', label: 'Cart review', headline: '3 items · ₹214.00 subtotal', from: 0, to: 3, drop: 0.0115, focus: 0.010, interactive: false },
     { id: 'shipping', label: 'Shipping details', headline: 'Where should this go?', from: 3, to: 6, drop: 0.0140, focus: -0.020, interactive: false },
     { id: 'ship_cost', label: 'Shipping cost shown', headline: '+ ₹149 standard shipping', from: 6, to: 8, drop: 0.0290, focus: -0.055, interactive: false, reason: 'shipping_shock' },
     { id: 'payment', label: 'Payment', headline: 'UPI · Card · Netbanking', from: 8, to: 11, drop: 0.0180, focus: -0.010, interactive: true },

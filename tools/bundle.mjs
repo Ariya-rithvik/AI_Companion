@@ -1,8 +1,8 @@
 /**
  * Bundle the console into single self-contained HTML files.
  *
- *   dist/backstage-demo.html      full document — double-click to run offline
- *   dist/backstage-artifact.html  body-only — for hosts that supply the skeleton
+ *   dist/recovery-agent-demo.html      full document — double-click to run offline
+ *   dist/recovery-agent-artifact.html  body-only — for hosts that supply the skeleton
  *
  * The app is four ES modules. To inline them without a bundler we strip the
  * `import` lines and the `export` keywords, concatenate in dependency order,
@@ -95,15 +95,15 @@ const parts = [
 ].join('\n');
 
 fs.mkdirSync(path.join(ROOT, 'dist'), { recursive: true });
-fs.writeFileSync(path.join(ROOT, 'dist/backstage-artifact.html'), parts + '\n');
+fs.writeFileSync(path.join(ROOT, 'dist/recovery-agent-artifact.html'), parts + '\n');
 fs.writeFileSync(
-  path.join(ROOT, 'dist/backstage-demo.html'),
+  path.join(ROOT, 'dist/recovery-agent-demo.html'),
   '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
   + parts + '\n</body>\n</html>\n'
 );
 
 const kb = f => (fs.statSync(path.join(ROOT, f)).size / 1024).toFixed(0) + ' KB';
-console.log('  dist/backstage-demo.html      ' + kb('dist/backstage-demo.html') + '   (standalone document)');
-console.log('  dist/backstage-artifact.html  ' + kb('dist/backstage-artifact.html') + '   (body only)');
+console.log('  dist/recovery-agent-demo.html      ' + kb('dist/recovery-agent-demo.html') + '   (standalone document)');
+console.log('  dist/recovery-agent-artifact.html  ' + kb('dist/recovery-agent-artifact.html') + '   (body only)');
 console.log('  inlined ' + sources.map(m => path.basename(m.f) + ':' + m.names.length).join('  '));

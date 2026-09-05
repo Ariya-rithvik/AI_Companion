@@ -36,26 +36,30 @@ and naming a competitor in their own building is a needless own goal.
 
 ## Before you record
 
+One command checks the whole runbook, with all 12 environment variables deleted from
+the child processes — so it proves the demo works on a laptop that has never seen
+this repo's `.env`:
+
 ```bash
-npm ci                 # or npm install
-npm run check          # 0 errors across 34 modules
-npm test               # 42 safety properties
-node tools/encoding-sweep.mjs
+npm run demo:check
 ```
 
-All four must be clean. If `check` fails, something imports a file the bundler does not inline —
-fix that before recording, because the standalone build will be broken.
+Expect **18/18 PASS** and the closing line *"ALL STEPS PASS WITH ZERO API KEYS."*
+If any step fails, do not record until it is green.
 
-Optional, for the live segment — put **test-mode** keys in `.env`:
+It covers: recover, calibration, both test suites, graph, encoding, bench, build,
+both credential paths, all four served pages, three MCP calls, and a 404.
 
+**API keys: you need none.** Not for any step above, not for the run order below.
+`.env.example` lists what the two optional ones unlock. The only step that touches
+the network is step 5, which is optional and aborts cleanly without keys.
+
+**If port 8787 is busy** (an earlier `npm start` still running) the server now says so
+and exits, rather than printing a stack trace:
+
+```bash
+PORT=8788 npm start      # or: npx kill-port 8787
 ```
-RAZORPAY_KEY_ID=rzp_test_...
-RAZORPAY_KEY_SECRET=...
-```
-
-The demo works completely without them. It prints `[DRY RUN]` and says so.
-
----
 
 ## The run order
 

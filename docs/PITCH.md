@@ -129,9 +129,16 @@ success ref. An adapter that returns success with nothing to point at is recorde
 
 ## What is real and what is not
 
-**Real:** the method, the evaluation, the governance, the Razorpay test-mode adapter
-(`razorpay/rzp.mjs` — order creation, payment links, HMAC webhook verification with
-`timingSafeEqual`, 8/8 signature cases including tampered body and wrong secret).
+**Real:** the method, the evaluation, and the governance. All of it runs offline — no key,
+no network.
+
+**Real, and precisely this much:** `razorpay/rzp.mjs` is the only payment integration in the
+repo — orders, payment links, and HMAC webhook verification with `timingSafeEqual`, written
+against the REST API with `node:crypto` and no payment SDK. The signature path is **proven**:
+8/8 cases including a tampered body and a wrong secret. The HTTP path is **written and correct
+but unproven** — we have never held a working Razorpay credential, so no live call in this
+project has returned 200. `--live` preflights the credential and says so rather than implying
+otherwise.
 
 **Synthetic:** the customers. Labelled as such in the benchmark header, in the README, and on
 screen. `featurise()` consumes an ordinary event list — `order.created`, `payment.captured`,
@@ -149,7 +156,7 @@ the budget model rather than the threshold.
 npm run recover                  # the batch: detect -> qualify -> execute -> measure -> audit
 node razorpay/calibration.mjs    # predicted vs actually delivered, by decile
 npm test                         # 42 safety properties
-npm run check                    # dependency invariants, 0 errors across 33 modules
+npm run check                    # dependency invariants, 0 errors across 34 modules
 npm run bench                    # the incrementality thesis on the discount case
-node --env-file=.env razorpay/recover.mjs --live   # real Razorpay test-mode payment links
+node --env-file=.env razorpay/recover.mjs --live   # optional; aborts unless keys authenticate
 ```

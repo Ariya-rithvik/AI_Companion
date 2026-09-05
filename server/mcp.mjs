@@ -561,10 +561,35 @@ const server = http.createServer(async (req, res) => {
 // This is how your canvas repo does it — same process, same port.
 attachMeetingServer(server);
 
+// A port clash is the likeliest live-demo failure: an earlier `npm start` still
+// running, or another tool on 8787. Node's default here is an unhandled 'error'
+// event and a twenty-line stack trace, which looks like the app is broken. Say
+// what happened and what to type instead.
+server.on('error', err => {
+  if (err.code === 'EADDRINUSE') {
+    console.error('');
+    console.error('  Port ' + PORT + ' is already in use.');
+    console.error('  Something else is listening - most likely an earlier `npm start`.');
+    console.error('');
+    console.error('  Use another port:   PORT=8788 npm start');
+    console.error('  Or free this one:   npx kill-port ' + PORT);
+    console.error('');
+    process.exit(1);
+  }
+  if (err.code === 'EACCES') {
+    console.error('');
+    console.error('  Not allowed to listen on port ' + PORT + '. Ports below 1024 need');
+    console.error('  elevated rights - pick a higher one:   PORT=8788 npm start');
+    console.error('');
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, () => {
-  const llmStatus = isLLMConfigured() ? '✓ real AI (' + (process.env.LLM_PROVIDER || 'groq') + ')' : '✗ no key (rule-based fallback)';
+  const llmStatus = isLLMConfigured() ? '✓ real AI (' + (process.env.LLM_PROVIDER || 'groq') + ')' : 'template (deterministic - same numbers)';
   console.log('');
-  console.log('  Backstage — Real AI Edition');
+  console.log('  Recovery Agent - operator console   (the submission is `npm run recover`)');
   console.log('  console    http://localhost:' + PORT + '/');
   console.log('  meeting    http://localhost:' + PORT + '/meeting');
   console.log('  web mcp    http://localhost:' + PORT + '/mcp   (' + TOOLS.length + ' tools, protocol ' + PROTOCOL_VERSION + ')');
@@ -572,8 +597,9 @@ server.listen(PORT, () => {
   console.log('  AI nudges  ' + llmStatus);
   console.log('');
   if (!isLLMConfigured()) {
-    console.log('  ⚠  Add GROQ_API_KEY to .env to enable real AI nudges.');
-    console.log('     Get a free key at https://console.groq.com');
+    console.log('  No LLM key set - briefs are written by the deterministic template.');
+    console.log('  Every number is identical either way: JavaScript computes them and the');
+    console.log('  model may only rephrase. Optional key: console.groq.com -> GROQ_API_KEY');
     console.log('');
   }
 });

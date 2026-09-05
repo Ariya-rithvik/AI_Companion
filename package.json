@@ -1,30 +1,31 @@
 {
-    "name":  "backstage",
-    "version":  "0.2.0",
-    "private":  true,
-    "type":  "module",
-    "description":  "Real AI meeting companion: observe live WebRTC rooms, build labelled datasets, run LLM-powered experiments, promote winners into skills. Exposed over Web MCP.",
-    "scripts":  {
-                    "start":  "node server/mcp.mjs",
-                    "dev":  "node --env-file=.env server/mcp.mjs",
-                    "build":  "node tools/bundle.mjs",
-                    "calibrate":  "node tools/calibrate.mjs",
-                    "graph":  "node tools/graph.mjs",
-                    "check":  "node tools/graph.mjs check",
-                    "impact":  "node tools/graph.mjs impact",
-                    "bench":  "node razorpay/bench.mjs",
-                    "encoding":  "node tools/encoding-sweep.mjs",
-                    "verify":  "node tools/graph.mjs check \u0026\u0026 node tools/encoding-sweep.mjs",
-                    "recover":  "node razorpay/recover.mjs",
-                    "test":  "node razorpay/policy.test.mjs \u0026\u0026 node razorpay/pacer.test.mjs",
-                    "calibrate:uplift":  "node razorpay/calibration.mjs"
-                },
-    "dependencies":  {
-                         "groq-sdk":  "^0.9.0",
-                         "socket.io":  "^4.7.5",
-                         "dotenv":  "^16.4.5"
-                     },
-    "engines":  {
-                    "node":  "\u003e=18"
-                }
+  "name": "recovery-agent",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Razorpay AI Buildathon Track 03 - a revenue-recovery agent that knows when not to spend money.",
+  "scripts": {
+    "start": "node server/mcp.mjs",
+    "dev": "node --env-file=.env server/mcp.mjs",
+    "build": "node tools/bundle.mjs",
+    "calibrate": "node tools/calibrate.mjs",
+    "graph": "node tools/graph.mjs",
+    "check": "node tools/graph.mjs check",
+    "impact": "node tools/graph.mjs impact",
+    "bench": "node razorpay/bench.mjs",
+    "encoding": "node tools/encoding-sweep.mjs",
+    "verify": "node tools/graph.mjs check && node tools/encoding-sweep.mjs && node tools/demo-check.mjs",
+    "recover": "node razorpay/recover.mjs",
+    "test": "node razorpay/policy.test.mjs && node razorpay/pacer.test.mjs",
+    "calibrate:uplift": "node razorpay/calibration.mjs",
+    "demo:check": "node tools/demo-check.mjs"
+  },
+  "dependencies": {
+    "groq-sdk": "^0.9.0",
+    "socket.io": "^4.7.5",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

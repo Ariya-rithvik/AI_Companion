@@ -28,7 +28,7 @@ const sf = () => surfaceById(S.surfaceId);
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const pct = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
-const money = n => '$' + Math.round(n).toLocaleString('en-US');
+const money = n => '₹' + Math.round(n).toLocaleString('en-IN');
 const hue = str => { let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 
 const skillsHere = () => S.skills.filter(k => k.surface === S.surfaceId);
