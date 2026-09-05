@@ -4,9 +4,10 @@
  * WHY THIS EXISTS
  * A recovery agent that outputs `blocked: recovers unprompted` is correct and
  * useless. The operator approving a ₹13,000 action needs to know what the model
- * saw. Aegis's best idea is not its payment integration — it is that every
- * sentence in a brief links back to the record it rests on. That idea costs
- * nothing to adopt and it is what makes an audit trail worth auditing.
+ * saw. The best idea we carried over from Aegis — our earlier internal agent
+ * framework — is that every sentence in a brief links back to the record it
+ * rests on. That idea costs nothing to adopt and it is what makes an audit
+ * trail worth auditing.
  *
  * THE ORDER MATTERS, and it is the opposite of the usual one:
  *

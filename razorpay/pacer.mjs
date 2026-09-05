@@ -1,7 +1,8 @@
 /**
  * Pacer — round-level policy auditor for the recovery batch.
  *
- * Ported from Aegis's agent/src/aegis_agent/pacer.py. The design there is
+ * Ported from the pacer in Aegis, our earlier internal agent framework. The
+ * design there is
  * right and the reasoning is worth restating, because it is the opposite of
  * what most agent projects do:
  *

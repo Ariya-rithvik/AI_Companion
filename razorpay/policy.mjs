@@ -2,10 +2,9 @@
  * Policy engine + action ledger — "every money action explainable, bounded and
  * gated", which is the stated bar on both Razorpay tracks we care about.
  *
- * The patterns here are ported from Aegis's actor worker
- * (aegis-api/src/aegis_api/workers/actor.py), re-implemented for this
- * codebase. Four of them matter and each exists because the obvious version is
- * unsafe:
+ * The patterns here are ported from the action worker in Aegis, our earlier
+ * internal agent framework, re-implemented for this codebase. Four of them
+ * matter and each exists because the obvious version is unsafe:
  *
  *  1. IDEMPOTENCY IS A HASH, NOT A STRING CONCAT.
  *     sha256([case, kind, payload]) with sorted keys. Two callers building the

@@ -40,7 +40,7 @@ const CONTACT_COST = 6;     // ₹ per outreach: SMS + link + amortised support
 const INCENTIVE = 0.10;     // discount offered on the recovery link
 const N = 9000;
 
-/* Approval tiers — Aegis's pattern. A flat budget is not "compliant
+/* Approval tiers — the Aegis pattern. A flat budget is not "compliant
  * escalation"; a tier ladder is. Amounts in rupees. */
 const TIERS = [
   { max: 500, tier: 'auto', label: 'auto-approved' },

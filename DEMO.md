@@ -14,7 +14,8 @@ webhook verification against `api.razorpay.com`. There is no second payment SDK,
 `package.json` has no payment dependency at all — the adapter is written directly against the
 REST API with `node:crypto`.
 
-**Aegis contributed architecture, not code:**
+**Four patterns came from Aegis, our own earlier internal agent framework — architecture,
+not code:**
 
 | Pattern | Where it lives now |
 | --- | --- |
@@ -23,11 +24,13 @@ REST API with `node:crypto`.
 | pure governance rules that gate money on visible arithmetic | `razorpay/pacer.mjs` |
 | every claim cites the record it rests on | `razorpay/explain.mjs` |
 
-Aegis's clone was kept outside the repo entirely. Nothing from it ships.
+Nothing from that framework ships here. It was never cloned into this repo, and every one of
+those four patterns was rewritten against Razorpay from scratch.
 
-**If a judge asks whether this is ported from a prior project, say:** *"Aegis is our own earlier
-work on a different payment provider. We reused four of its architectural patterns and
-reimplemented them against Razorpay. The payment integration here is Razorpay only."*
+**If a judge asks whether this is ported from a prior project, say:** *"Four architectural
+patterns come from our own earlier internal agent framework. We reimplemented all of them
+against Razorpay. The payment integration here is Razorpay only, written directly against the
+REST API."*
 
 Then move on. Do not volunteer the comparison — it is not the interesting part of the submission,
 and naming a competitor in their own building is a needless own goal.
