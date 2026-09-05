@@ -53,8 +53,8 @@ async function sendWidgetMessage() {
 
   // Create AI message bubble with streaming cursor
   const aiDiv = document.createElement('div');
-  aiDiv.style.cssText = 'background:#1e2330;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;border:1px solid #2a3040';
-  aiDiv.innerHTML = '<span style="font-size:10px;font-weight:700;color:#4f8ef7;letter-spacing:0.5px;display:block;margin-bottom:4px">AI ASSISTANT</span><span id="aiStreamCurrent">⋯</span>';
+  aiDiv.style.cssText = 'background:var(--surface-2);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;border:1px solid var(--surface-3)';
+  aiDiv.innerHTML = '<span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.5px;display:block;margin-bottom:4px">AI ASSISTANT</span><span id="aiStreamCurrent">⋯</span>';
   aiWidgetMessages.appendChild(aiDiv);
   aiWidgetMessages.scrollTop = aiWidgetMessages.scrollHeight;
 
@@ -105,15 +105,15 @@ async function sendWidgetMessage() {
     streamSpan.id = ''; // deactivate stream target
   } catch (e) {
     streamSpan.textContent = 'Error: ' + e.message;
-    streamSpan.style.color = '#f87171';
+    streamSpan.style.color = 'var(--crit)';
   }
 }
 
 function appendWidgetMsg(role, text) {
   const div = document.createElement('div');
   div.style.cssText = role === 'user'
-    ? 'background:#0d1626;border-radius:8px;padding:8px 12px;font-size:13px;color:#94a3b8;border:1px solid #1e2d45;text-align:right'
-    : 'background:#1e2330;border-radius:8px;padding:8px 12px;font-size:13px;border:1px solid #2a3040';
+    ? 'background:var(--surface);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--mid);border:1px solid var(--surface-3);text-align:right'
+    : 'background:var(--surface-2);border-radius:8px;padding:8px 12px;font-size:13px;border:1px solid var(--surface-3)';
   div.textContent = text;
   aiWidgetMessages.appendChild(div);
   aiWidgetMessages.scrollTop = aiWidgetMessages.scrollHeight;
@@ -144,34 +144,34 @@ async function checkLLMStatus() {
     aiWidgetStatus.textContent = isConfigured
       ? `✓ Real AI (${status.model || status.provider})`
       : '⚠ No API key — add to .env';
-    aiWidgetStatus.style.color = isConfigured ? '#34d399' : '#fbbf24';
+    aiWidgetStatus.style.color = isConfigured ? 'var(--ok)' : 'var(--warn)';
 
     // Also update the Meeting tab's AI status pill
     const pill = $('llmStatusPill');
     if (pill) {
       pill.textContent = isConfigured ? `✓ AI: ${status.provider}` : '⚠ No AI key';
-      pill.style.borderColor = isConfigured ? '#34d399' : '#fbbf24';
-      pill.style.color = isConfigured ? '#34d399' : '#fbbf24';
+      pill.style.borderColor = isConfigured ? 'var(--ok)' : 'var(--warn)';
+      pill.style.color = isConfigured ? 'var(--ok)' : 'var(--warn)';
     }
 
     const detail = $('aiStatusDetail');
     if (detail) {
       detail.innerHTML = isConfigured
-        ? `<div style="color:#34d399;font-weight:600;margin-bottom:6px">✓ Real AI Configured</div>
-           <div style="color:#94a3b8">Provider: <strong>${status.provider}</strong></div>
-           <div style="color:#94a3b8">Model: <strong>${status.model}</strong></div>
-           <div style="color:#64748b;margin-top:8px;font-size:12px">AI nudges are real Groq LLaMA calls. Nudge the operator button generates context-aware suggestions based on actual session state.</div>`
-        : `<div style="color:#fbbf24;font-weight:600;margin-bottom:6px">⚠ No API Key Configured</div>
-           <div style="color:#94a3b8;font-size:12px">Rule-based nudges are active as fallback.</div>
-           <div style="margin-top:10px;padding:10px;background:#0d0f14;border-radius:6px;font-family:monospace;font-size:12px">
-             1. Get a free key at <a href="https://console.groq.com" target="_blank" style="color:#4f8ef7">console.groq.com</a><br>
-             2. Add to .env: <strong style="color:#34d399">GROQ_API_KEY=gsk_...</strong><br>
-             3. Restart: <strong style="color:#34d399">npm run dev</strong>
+        ? `<div style="color:var(--ok);font-weight:600;margin-bottom:6px">✓ Real AI Configured</div>
+           <div style="color:var(--mid)">Provider: <strong>${status.provider}</strong></div>
+           <div style="color:var(--mid)">Model: <strong>${status.model}</strong></div>
+           <div style="color:var(--dim);margin-top:8px;font-size:12px">AI nudges are real Groq LLaMA calls. Nudge the operator button generates context-aware suggestions based on actual session state.</div>`
+        : `<div style="color:var(--warn);font-weight:600;margin-bottom:6px">⚠ No API Key Configured</div>
+           <div style="color:var(--mid);font-size:12px">Rule-based nudges are active as fallback.</div>
+           <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:6px;font-family:monospace;font-size:12px">
+             1. Get a free key at <a href="https://console.groq.com" target="_blank" style="color:var(--accent)">console.groq.com</a><br>
+             2. Add to .env: <strong style="color:var(--ok)">GROQ_API_KEY=gsk_...</strong><br>
+             3. Restart: <strong style="color:var(--ok)">npm run dev</strong>
            </div>`;
     }
   } catch {
     aiWidgetStatus.textContent = 'Server offline';
-    aiWidgetStatus.style.color = '#f87171';
+    aiWidgetStatus.style.color = 'var(--crit)';
   }
 }
 
@@ -236,21 +236,21 @@ async function refreshRooms() {
     const resp = await fetch('/api/meeting/list');
     const data = await resp.json();
     if (!data.rooms.length) {
-      el.innerHTML = '<span style="color:#64748b">No active rooms — create one above</span>';
+      el.innerHTML = '<span style="color:var(--dim)">No active rooms — create one above</span>';
       return;
     }
     el.innerHTML = data.rooms.map(r =>
-      `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1a2035;border-radius:8px;margin-bottom:6px">
-        <span style="color:#34d399">●</span>
+      `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface-2);border-radius:8px;margin-bottom:6px">
+        <span style="color:var(--ok)">●</span>
         <div style="flex:1">
           <div style="font-weight:600">${r.meetingId}</div>
-          <div style="font-size:11px;color:#64748b">${r.participantCount} participant${r.participantCount !== 1 ? 's' : ''} · ${r.surface}</div>
+          <div style="font-size:11px;color:var(--dim)">${r.participantCount} participant${r.participantCount !== 1 ? 's' : ''} · ${r.surface}</div>
         </div>
-        <a href="/meeting?meetingId=${encodeURIComponent(r.meetingId)}" target="_blank" style="font-size:12px;color:#4f8ef7;text-decoration:none">Join →</a>
+        <a href="/meeting?meetingId=${encodeURIComponent(r.meetingId)}" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none">Join →</a>
       </div>`
     ).join('');
   } catch {
-    el.innerHTML = '<span style="color:#f87171">Could not fetch rooms</span>';
+    el.innerHTML = '<span style="color:var(--crit)">Could not fetch rooms</span>';
   }
 }
 

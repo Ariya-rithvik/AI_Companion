@@ -1,6 +1,8 @@
 import * as E from '../engine/core.mjs';
 import { SURFACE_LIST, surfaceById } from '../engine/surfaces.mjs';
 import { seedLibrary } from '../engine/library.mjs';
+import * as M from '../engine/memory.mjs';
+import { mountCompanion } from './companion.js';
 
 /* ══════════════════════════════════ state ══════════════════════════════════ */
 
@@ -17,6 +19,8 @@ const S = {
   remote: false,          // true once the Web MCP server answers
   serverTools: null,      // catalogue as reported by tools/list
   skills: seedLibrary(),
+  cues: [],              // memory-derived cues armed for the current run
+  fired: new Set(),      // cue ids already surfaced this run
 };
 
 const sf = () => surfaceById(S.surfaceId);
@@ -128,7 +132,10 @@ function newSession() {
   stop();
   S.ses = E.createSession({ surface: sf(), seed: Math.floor(Math.random() * 9e6), levers: armedLevers(), live: true });
   S.focusHist = []; S.ticker = [];
+  S.cues = M.cuesFor(S.surfaceId, sf().horizon, sf().stages);
+  S.fired = new Set();
   applySurfaceChrome();
+  renderBrief();
   if (sf().view === 'tiles') renderTiles(true);
   renderAll();
 }
@@ -148,13 +155,20 @@ function step() {
     stop();
     $('recPill').classList.add('off');
     $('recPill').textContent = 'RUN COMPLETE';
+    if (!s._remembered) {
+      s._remembered = true;                 // step() can re-enter before the interval clears
+      M.remember(s, E.metricsOf);
+      renderBrief();
+      renderMemory();
+    }
     renderDataset();
     return;
   }
   for (const ev of E.tick(s)) {
-    if (ev.type === sf().events.capture) flashScan();
+    if (ev.type === sf().events.capture) { flashScan(); companion.flash(); }
     pushTicker(ev);
   }
+  fireDueCues(s);
   S.focusHist.push(E.focusOf(s));
   if (S.focusHist.length > 120) S.focusHist.shift();
   renderAll();
@@ -275,7 +289,10 @@ function renderFlow() {
   const peak = Math.max(1, s.peak);
   const now = s.stageId;
   $('flow').innerHTML = stageStats(s).map(r => {
-    const w = Math.max(1.5, (r.left / peak) * 100);
+    // A stage the run has not reached yet must read as empty. r.left carries the
+    // current remaining count, so drawing it for every row made unreached stages
+    // look like everyone had already passed through them.
+    const w = r.reached ? Math.max(1.5, (r.left / peak) * 100) : 0;
     const lostW = Math.max(0, (r.lost / peak) * 100);
     return '<div class="frow ' + (r.st.id === now ? 'now' : '') + ' ' + (r.reached ? '' : 'pending') + '">'
       + '<div class="fmeta"><b>' + esc(r.st.label) + '</b><span>' + esc(r.st.headline) + '</span></div>'
@@ -306,11 +323,17 @@ function renderRisk(act) {
 
 function renderNudges() {
   const box = $('nudgeList');
-  const list = S.ses.nudges.slice(-4).reverse();
-  $('nudgeCnt').textContent = S.ses.nudges.length;
+  // Memory cues are the whole point of the companion, and they fire early - so
+  // a tail-of-the-list view buries them under routine live nudges every time.
+  // Keep the two most recent of each, memory first.
+  const all = S.ses.nudges;
+  const mem = all.filter(n => n.memory).slice(-2).reverse();
+  const live = all.filter(n => !n.memory).slice(-2).reverse();
+  const list = [...mem, ...live];
+  $('nudgeCnt').textContent = all.length;
   if (!list.length) { box.innerHTML = '<div class="empty">Watching…</div>'; return; }
-  box.innerHTML = list.map(n => '<div class="nudge ' + n.urgency + '">'
-    + '<div class="nt"><span>' + n.ts + '</span><span>' + n.urgency.toUpperCase() + '</span><span>' + n.stage + '</span></div>'
+  box.innerHTML = list.map(n => '<div class="nudge ' + (n.memory ? 'memory' : n.urgency) + '">'
+    + '<div class="nt"><span>' + n.ts + '</span><span>' + (n.memory ? 'FROM MEMORY' : n.urgency.toUpperCase()) + '</span><span>' + n.stage + '</span></div>'
     + esc(n.text) + '</div>').join('');
 }
 
@@ -373,6 +396,107 @@ function flashScan() {
   n.classList.remove('go'); void n.offsetWidth; n.classList.add('go');
 }
 
+/* ════════════════════════════════ memory ═════════════════════════════════
+ * Cues come from previous runs, so they can fire BEFORE the thing they warn
+ * about. That head start is the entire point - a warning that arrives together
+ * with the drop-off is just a slower dashboard.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+function fireDueCues(s) {
+  const pos = s.t / sf().stageUnit;
+  for (const c of S.cues) {
+    if (S.fired.has(c.id) || pos < c.at) continue;
+    S.fired.add(c.id);
+    s.nudges.push({
+      id: 'mem_' + c.id, t: s.t, ts: E.fmtClock(sf(), s.t),
+      urgency: 'medium', memory: true, stage: s.stageId,
+      text: c.say + '  (' + c.why + ')',
+    });
+  }
+}
+
+const fmtPos = p => {
+  const u = sf().clock;
+  if (u === 'days') return 'day ' + (1 + Math.floor(p));
+  if (u === 'hours') return 'h+' + p.toFixed(1);
+  return String(Math.floor(p)).padStart(2, '0') + ':' + String(Math.round((p % 1) * 60)).padStart(2, '0');
+};
+
+function renderBrief() {
+  const b = M.brief(S.surfaceId, sf().horizon, sf().stages);
+  const box = $('brief');
+  if (!box) return;
+  if (!b.ready) {
+    box.className = 'brief waiting';
+    box.innerHTML = '<b>Memory</b>' + esc(b.message);
+    return;
+  }
+  box.className = 'brief';
+  const trend = b.trend
+    ? ' Retention across your last ' + b.trend.recent + ' runs is ' + pct(b.trend.retention_delta * 100)
+      + ' against the ones before.'
+    : '';
+  box.innerHTML = '<b>Before this run</b>' + esc(b.message + trend)
+    + b.cues.slice(0, 3).map(c => '<div class="bcue"><span>' + fmtPos(c.at) + '</span><span>'
+      + esc(c.say.slice(0, 82)) + '…</span></div>').join('');
+}
+
+function renderMemory() {
+  const box = $('memBody');
+  if (!box) return;
+  const b = M.brief(S.surfaceId, sf().horizon, sf().stages);
+  const eps = M.episodesFor(M.load(), S.surfaceId).slice().reverse();
+
+  const head = '<div class="honest">' + esc(b.message)
+    + (b.ready ? '' : ' A pattern has to reproduce before the companion will say it out loud.') + '</div>';
+
+  const cues = b.cues.length
+    ? '<h4>Cues armed for the next run</h4><div class="cuelist">'
+      + b.cues.map(c => '<div class="cuerow"><span class="at">' + fmtPos(c.at) + '</span><span>'
+        + esc(c.say) + '</span><span class="why">' + esc(c.why) + '</span></div>').join('') + '</div>'
+    : '';
+
+  const pats = b.patterns.length
+    ? '<h4>Patterns</h4><div class="memgrid">' + b.patterns.map(p =>
+      '<div class="pat' + (p.stale ? ' stale' : '') + '">'
+      + '<div class="conf"><div class="confbar"><i style="width:' + Math.round(p.confidence * 100)
+      + '%"></i></div><b>' + p.confidence.toFixed(2) + '</b></div>'
+      + '<h3>' + esc(p.statement) + '</h3>'
+      + '<div class="det">' + esc(p.detail) + '</div>'
+      + '<div class="ev"><span class="kindtag' + (p.observational ? ' obs' : '') + '">'
+      + p.kind.replace(/_/g, ' ') + '</span><span>' + p.evidence.n + '/' + p.evidence.of + ' runs</span>'
+      + '<span>confirmed ' + p.confirmed + (p.contradicted ? ' · missed ' + p.contradicted : '') + '</span>'
+      + '<button class="fbtn" data-forget="' + p.id + '">forget</button></div></div>').join('') + '</div>'
+    : '';
+
+  const episodes = eps.length
+    ? '<h4>Episodes</h4><div class="eplist">' + eps.map(e =>
+      '<div class="eprow"><span class="epid">' + e.id.slice(0, 18) + '</span><span>'
+      + esc(e.losses[0] ? 'worst: ' + e.losses[0].label + ' (−' + e.losses[0].count + ')' : 'no departures')
+      + '</span><span>ret <b>' + (e.metrics.retention * 100).toFixed(0) + '%</b></span>'
+      + '<span>' + e.metrics.outcomes + ' out</span></div>').join('') + '</div>'
+    : '<div class="empty big">No runs recorded on this surface yet.</div>';
+
+  box.innerHTML = head + cues + pats + episodes;
+  for (const btn of box.querySelectorAll('[data-forget]')) {
+    btn.onclick = () => { M.forget(btn.dataset.forget); renderMemory(); renderBrief(); };
+  }
+}
+
+/** Record real runs headlessly, so memory has something to reason over. */
+async function seedMemory(n) {
+  const btn = $('btnSeedMem');
+  btn.disabled = true;
+  for (let i = 0; i < n; i++) {
+    btn.textContent = 'Recording ' + (i + 1) + '/' + n + '…';
+    await new Promise(r => setTimeout(r, 20));
+    const r = E.runSession({ surface: sf(), seed: Math.floor(Math.random() * 9e6), levers: armedLevers() });
+    M.remember(r.session, E.metricsOf);
+  }
+  btn.disabled = false; btn.textContent = 'Record 3 runs';
+  renderMemory(); renderBrief();
+}
+
 /* ════════════════════════════════ dataset ═════════════════════════════════ */
 
 function renderDataset() {
@@ -412,11 +536,11 @@ function renderDataset() {
 
 function tyc(r) {
   const e = sf().events;
-  if (r.type === e.leave) return '#ff4f68';
-  if (r.type === e.join || r.type === e.save) return '#8cf27a';
-  if (r.type === e.capture || r.type === e.nudge) return '#35d0ff';
-  if (r.type === e.deep) return '#b78cff';
-  return '#9aa9bf';
+  if (r.type === e.leave) return '#b8203f';
+  if (r.type === e.join || r.type === e.save) return '#0d7a4f';
+  if (r.type === e.capture || r.type === e.nudge) return '#2563a8';
+  if (r.type === e.deep) return '#5b4bb8';
+  return '#5a6b76';
 }
 
 function download(name, text, mime) {
@@ -752,19 +876,83 @@ async function probeMcp() {
   }
 }
 
+/* ══════════════════════════ floating AI companion ══════════════════════════
+ * The overlay reads the same live session the console does. It is deliberately
+ * a READER: it never mutates state, so it cannot break a run, and it can be
+ * torn out without touching anything else.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+function companionSource() {
+  const s = S.ses;
+  const surface = sf();
+  if (!s) return { status: 'idle', vitals: {}, risks: [], cues: [], events: [] };
+
+  const live = s.roster.filter(a => a.joinedAt <= s.t && a.leftAt === null);
+  const st = E.stageAt(s.t / surface.stageUnit, s.stages);
+  const m = E.metricsOf(s);
+
+  const risks = live
+    .filter(a => a.focus < 0.42)
+    .map(a => ({
+      a,
+      hz: st.drop * surface.segments[a.segment].dropMult * (1.38 - a.focus) * 100,
+    }))
+    .sort((x, y) => y.hz - x.hz)
+    .slice(0, 5)
+    .map(({ a, hz }) => ({ who: displayName(a) + ' · ' + surface.segments[a.segment].label.toLowerCase(),
+      val: hz.toFixed(2) + '%/t' }));
+
+  // memory cues first - they are the ones with a head start on the event
+  // Provenance is carried explicitly. Badging "not urgent" as "from memory" was
+  // wrong twice over: it mislabels where a claim came from, which is the one
+  // thing this console is not allowed to get wrong.
+  const cues = [...s.nudges].reverse().slice(0, 6).map(n => ({
+    id: n.id,
+    at: n.ts,
+    say: n.text,
+    memory: !!n.memory,
+    urgent: !n.memory && n.urgency === 'high',
+    why: n.memory ? 'learned from earlier runs' : 'detected live',
+  })).sort((a, b) => Number(b.memory) - Number(a.memory));
+
+  const events = S.ticker.slice(0, 12).map(html => {
+    const m2 = html.match(/>([^<]+)<\/span>\s*([^<]+)<span class="o">([^<]*)<\/span>\s*([^<]*)/);
+    return m2 ? { ts: m2[1], type: m2[2].trim(), actor: m2[3], detail: m2[4].trim() } : null;
+  }).filter(Boolean);
+
+  return {
+    status: s.done ? 'complete' : S.timer ? 'observing' : 'paused',
+    vitals: {
+      retention: s.peak ? live.length / s.peak : 0,
+      focus: E.focusOf(s),
+      live: live.length,
+      peak: s.peak,
+      outcomes: m.outcomes,
+    },
+    risks, cues, events,
+  };
+}
+
+const companion = mountCompanion({
+  trigger: '#btnCompanion',
+  title: 'Backstage Companion',
+  source: companionSource,
+});
+
 /* ════════════════════════════════ wiring ════════════════════════════════ */
 
 function switchTab(name) {
   for (const b of $('tabs').children) b.classList.toggle('on', b.dataset.tab === name);
   for (const v of document.querySelectorAll('.view')) v.classList.toggle('on', v.id === 'v-' + name);
   if (name === 'dataset') renderDataset();
+  if (name === 'memory') renderMemory();
   if (name === 'mcp') { renderTools(); renderRpc(); }
 }
 
 function switchSurface(id) {
   S.surfaceId = id;
   selected.clear();
-  renderLevers(); renderSkills();
+  renderLevers(); renderSkills(); renderMemory();
   $('transferOut').innerHTML = '';
   $('expResult').classList.add('hidden');
   $('expEmpty').classList.remove('hidden');
@@ -811,6 +999,8 @@ $('btnCsv').onclick = () => {
     r.features.cohort_retention, r.label.churn_next ?? '', r.label.outcome ?? ''].join(','));
   download('backstage-' + S.surfaceId + '.csv', [head].concat(body).join('\n'), 'text/csv');
 };
+$('btnSeedMem').onclick = () => seedMemory(3);
+$('btnForgetAll').onclick = () => { M.reset(); renderMemory(); renderBrief(); };
 $('btnRun').onclick = runExperiment;
 $('btnRetest').onclick = retestLibrary;
 $('btnRoi').onclick = computeRoi;
@@ -832,6 +1022,8 @@ for (const b of $('surfPick').children) {
 }
 
 applySurfaceChrome();
+renderBrief();
+renderMemory();
 renderLevers();
 renderSkills();
 renderTools();

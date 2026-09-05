@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 660" width="1120" height="660"
+     font-family="IBM Plex Sans, -apple-system, Segoe UI, Roboto, sans-serif" role="img"
+     aria-label="Backstage Recovery architecture: detect, qualify, decide, govern, execute, measure">
+  <title>Backstage Recovery — architecture</title>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7d8d97"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#0d6e6e"/>
+    </marker>
+    <style>
+      .bg    { fill:#f5f7f8 }
+      .card  { fill:#ffffff; stroke:#e0e5e9; rx:8 }
+      .built { fill:#ffffff; stroke:#a8d5d1; stroke-width:1.5; rx:8 }
+      .plan  { fill:#f5f7f8; stroke:#c9d1d7; stroke-dasharray:5 4; rx:8 }
+      .hero  { fill:#e4f1f0; stroke:#0d6e6e; stroke-width:2; rx:8 }
+      .band  { fill:#eef1f3; stroke:none; rx:10 }
+      .t     { fill:#0f1a1f; font-size:13.5px; font-weight:600 }
+      .s     { fill:#4a5a64; font-size:11px }
+      .m     { fill:#7d8d97; font-size:10px; font-family:IBM Plex Mono, monospace }
+      .stage { fill:#7d8d97; font-size:10.5px; font-weight:700; letter-spacing:1.2px }
+      .accent{ fill:#0d6e6e; font-size:13.5px; font-weight:700 }
+      .num   { fill:#0d6e6e; font-size:11px; font-weight:600; font-family:IBM Plex Mono, monospace }
+      .warn  { fill:#b8203f; font-size:11px; font-weight:600; font-family:IBM Plex Mono, monospace }
+      .ln    { stroke:#7d8d97; stroke-width:1.3; fill:none; marker-end:url(#a) }
+      .lng   { stroke:#0d6e6e; stroke-width:2; fill:none; marker-end:url(#ag) }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1120" height="660"/>
+
+  <text x="40" y="42" class="t" font-size="19">Backstage Recovery</text>
+  <text x="40" y="62" class="s">Track 03 — detect revenue at risk, choose the intervention, execute a bounded workflow, measure what came back</text>
+
+  <!-- legend -->
+  <rect x="836" y="28" width="14" height="14" class="built"/>
+  <text x="857" y="40" class="s">built &amp; tested</text>
+  <rect x="962" y="28" width="14" height="14" class="plan"/>
+  <text x="983" y="40" class="s">planned</text>
+
+  <!-- ── 1 DETECT ── -->
+  <text x="40" y="106" class="stage">1 · DETECT</text>
+  <rect class="built" x="40" y="118" width="182" height="86"/>
+  <text x="56" y="142" class="t">Razorpay adapter</text>
+  <text x="56" y="161" class="s">orders · payment links</text>
+  <text x="56" y="177" class="s">HMAC webhook verify</text>
+  <text x="56" y="195" class="m">razorpay/rzp.mjs · 8/8</text>
+
+  <rect class="built" x="40" y="216" width="182" height="70"/>
+  <text x="56" y="240" class="t">Behavioural twin</text>
+  <text x="56" y="259" class="s">events → features</text>
+  <text x="56" y="277" class="m">razorpay/twin.mjs</text>
+
+  <rect class="plan" x="40" y="298" width="182" height="58"/>
+  <text x="56" y="322" class="s">Live webhook ingest</text>
+  <text x="56" y="341" class="m">payment.failed → batch</text>
+
+  <!-- ── 2 QUALIFY ── -->
+  <text x="272" y="106" class="stage">2 · QUALIFY</text>
+  <rect class="hero" x="272" y="118" width="200" height="140"/>
+  <text x="288" y="144" class="accent">Incrementality</text>
+  <text x="288" y="164" class="s">P(recover | contacted)</text>
+  <text x="288" y="181" class="s">− P(recover | not)</text>
+  <text x="288" y="203" class="s">class-variable transform</text>
+  <text x="288" y="222" class="num">Qini 31.1 held out</text>
+  <text x="288" y="240" class="m">razorpay/uplift.mjs</text>
+
+  <rect class="built" x="272" y="270" width="200" height="86"/>
+  <text x="288" y="294" class="t">Four quadrants</text>
+  <text x="288" y="313" class="s">persuadable · sure thing</text>
+  <text x="288" y="330" class="s">lost cause · sleeping dog</text>
+  <text x="288" y="348" class="warn">0% of chase-averse contacted</text>
+
+  <!-- ── 3 DECIDE ── -->
+  <text x="522" y="106" class="stage">3 · DECIDE</text>
+  <rect class="built" x="522" y="118" width="190" height="104"/>
+  <text x="538" y="142" class="t">Which intervention</text>
+  <text x="538" y="161" class="s">link  ₹6</text>
+  <text x="538" y="178" class="s">link + offer  ₹6 + incentive</text>
+  <text x="538" y="199" class="s">chosen per customer</text>
+  <text x="538" y="215" class="m">505 offers of 552</text>
+
+  <rect class="built" x="522" y="234" width="190" height="122"/>
+  <text x="538" y="258" class="t">Explainer</text>
+  <text x="538" y="277" class="s">every claim cites evidence</text>
+  <text x="538" y="294" class="s">JS computes → template</text>
+  <text x="538" y="311" class="s">→ LLM may only rephrase</text>
+  <text x="538" y="331" class="num">0 claims dropped</text>
+  <text x="538" y="348" class="m">razorpay/explain.mjs</text>
+
+  <!-- ── 4 GOVERN ── -->
+  <text x="762" y="106" class="stage">4 · GOVERN</text>
+  <rect class="built" x="762" y="118" width="196" height="118"/>
+  <text x="778" y="142" class="t">Pacer</text>
+  <text x="778" y="161" class="s">pure rules · no model calls</text>
+  <text x="778" y="178" class="s">halts negative uplift, EV ≤ 0</text>
+  <text x="778" y="195" class="s">halts any sleeping dog</text>
+  <text x="778" y="215" class="num">17 tests · 121 caught</text>
+  <text x="778" y="230" class="m">razorpay/pacer.mjs</text>
+
+  <rect class="built" x="762" y="248" width="196" height="108"/>
+  <text x="778" y="272" class="t">Action ledger</text>
+  <text x="778" y="291" class="s">sha256 idempotency</text>
+  <text x="778" y="308" class="s">tiers: auto / 1-click / 2-person</text>
+  <text x="778" y="325" class="s">verbatim failure, null ref</text>
+  <text x="778" y="344" class="num">25 tests passing</text>
+
+  <!-- ── 5 EXECUTE + MEASURE band ── -->
+  <rect class="band" x="40" y="404" width="1040" height="128"/>
+  <text x="60" y="430" class="stage">5 · EXECUTE &amp; MEASURE</text>
+
+  <rect class="built" x="60" y="442" width="212" height="72"/>
+  <text x="76" y="466" class="t">Test-mode execution</text>
+  <text x="76" y="485" class="s">payment links, idempotent</text>
+  <text x="76" y="503" class="m">--live</text>
+
+  <rect class="hero" x="292" y="442" width="240" height="72"/>
+  <text x="308" y="466" class="accent">Measured outcome</text>
+  <text x="308" y="486" class="num">+₹2,32,868 net margin</text>
+  <text x="308" y="504" class="warn">propensity: −₹23,329</text>
+
+  <rect class="built" x="552" y="442" width="228" height="72"/>
+  <text x="568" y="466" class="t">Calibration</text>
+  <text x="568" y="485" class="s">predicted vs delivered, by decile</text>
+  <text x="568" y="503" class="num">MAE 2.97pp · corr 0.916</text>
+
+  <rect class="built" x="800" y="442" width="260" height="72"/>
+  <text x="816" y="466" class="t">Audit trail</text>
+  <text x="816" y="485" class="s">reason on every accept and reject</text>
+  <text x="816" y="503" class="m">stopping rule: budget exhausted</text>
+
+  <!-- flow arrows -->
+  <path class="ln"  d="M222 161 H262"/>
+  <path class="ln"  d="M222 251 H262 V200 H262"/>
+  <path class="lng" d="M472 188 H512"/>
+  <path class="ln"  d="M472 312 H512 V300"/>
+  <path class="ln"  d="M712 170 H752"/>
+  <path class="ln"  d="M712 295 H752"/>
+  <path class="ln"  d="M860 356 V430"/>
+  <path class="lng" d="M272 478 H282"/>
+  <path class="ln"  d="M532 478 H542"/>
+  <path class="ln"  d="M780 478 H790"/>
+
+  <!-- feedback loop -->
+  <path class="ln" d="M1060 514 V560 H372 V370" stroke-dasharray="6 5"/>
+  <text x="612" y="578" class="s">measured outcomes retrain the model — the next batch is decided on real results</text>
+
+  <!-- footer -->
+  <text x="40" y="622" class="s">Customers in the benchmark are synthetic and labelled as such. The pipeline is not:</text>
+  <text x="40" y="640" class="m">featurise() consumes order.created · payment.captured · payment.failed · coupon.applied — exactly what Razorpay webhooks emit.</text>
+</svg>

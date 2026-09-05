@@ -252,6 +252,21 @@ export function attachMeetingServer(httpServer) {
       }
     });
 
+    // ── RECORDING NOTIFICATIONS (host-only gate) ───────────────────────
+    // Recording itself is client-side (MediaRecorder). These events just
+    // notify other participants so a visible banner is shown — recording
+    // without telling people is unlawful in many jurisdictions.
+    socket.on('recording_started', ({ meetingId }) => {
+      const room = rooms.get(meetingId);
+      if (!room || room.hostSocketId !== socket.id) return;  // host-only
+      socket.to(meetingId).emit('recording_started');
+    });
+    socket.on('recording_stopped', ({ meetingId }) => {
+      const room = rooms.get(meetingId);
+      if (!room || room.hostSocketId !== socket.id) return;  // host-only
+      socket.to(meetingId).emit('recording_stopped');
+    });
+
     // ── LEAVE MEETING ─────────────────────────────────────────────────
     // From canvas repo: leave_meeting event + auto on disconnect
     socket.on('leave_meeting', ({ meetingId } = {}) => {

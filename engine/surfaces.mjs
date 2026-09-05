@@ -20,8 +20,9 @@
 
 /** Fill in the dynamics that are just proportions of the run length. */
 const withDynamics = s => ({
-  fatigue: 0.0009,
-  drift: 0.012 / s.horizon,
+  fatigue: 0.0011,     // per-tick penalty for going quiet, capped by idleCap
+  reversion: 0.06,     // how hard focus pulls back toward its baseline each tick
+  focusSag: 0.42,      // how far the baseline itself declines across a whole run
   idleCap: s.horizon / 5,
   churnWindow: s.horizon / 8,
   outcomeGate: s.outcomeGate ?? s.horizon / 2,
@@ -47,10 +48,10 @@ export const webinar = withDynamics({
   clock: 'mmss', stageUnit: 60, tickSeconds: 15, horizon: 40, arrivalWindow: 90,
   cohort: 180,
   segments: {
-    buyer: { label: 'Buyer', weight: 0.18, dropMult: 0.75, intent: 0.62, focus: 0.66, color: '#8cf27a' },
-    practitioner: { label: 'Practitioner', weight: 0.42, dropMult: 1.00, intent: 0.34, focus: 0.58, color: '#35d0ff' },
-    student: { label: 'Student', weight: 0.28, dropMult: 1.35, intent: 0.08, focus: 0.44, color: '#ffb547' },
-    competitor: { label: 'Competitor', weight: 0.12, dropMult: 0.60, intent: 0.02, focus: 0.72, color: '#b78cff' },
+    buyer: { label: 'Buyer', weight: 0.18, dropMult: 0.75, intent: 0.62, focus: 0.66, color: '#0d7a4f' },
+    practitioner: { label: 'Practitioner', weight: 0.42, dropMult: 1.00, intent: 0.34, focus: 0.58, color: '#2563a8' },
+    student: { label: 'Student', weight: 0.28, dropMult: 1.35, intent: 0.08, focus: 0.44, color: '#b0721a' },
+    competitor: { label: 'Competitor', weight: 0.12, dropMult: 0.60, intent: 0.02, focus: 0.72, color: '#5b4bb8' },
   },
   stages: [
     { id: 'intro', label: 'Welcome & housekeeping', headline: 'Welcome - Agent Orchestration in Production', from: 0, to: 4, drop: 0.0090, focus: -0.020, interactive: false },
@@ -97,23 +98,23 @@ export const checkout = withDynamics({
   clock: 'mmss', stageUnit: 60, tickSeconds: 10, horizon: 14, arrivalWindow: 120,
   cohort: 420,
   segments: {
-    returning: { label: 'Returning', weight: 0.22, dropMult: 0.62, intent: 0.68, focus: 0.72, color: '#8cf27a' },
-    intent_high: { label: 'High intent', weight: 0.26, dropMult: 0.88, intent: 0.48, focus: 0.62, color: '#35d0ff' },
-    browser: { label: 'Browsing', weight: 0.34, dropMult: 1.42, intent: 0.16, focus: 0.42, color: '#ffb547' },
-    price_check: { label: 'Price checking', weight: 0.18, dropMult: 1.65, intent: 0.09, focus: 0.5, color: '#b78cff' },
+    returning: { label: 'Returning', weight: 0.22, dropMult: 0.62, intent: 0.68, focus: 0.72, color: '#0d7a4f' },
+    intent_high: { label: 'High intent', weight: 0.26, dropMult: 0.88, intent: 0.48, focus: 0.62, color: '#2563a8' },
+    browser: { label: 'Browsing', weight: 0.34, dropMult: 1.42, intent: 0.16, focus: 0.42, color: '#b0721a' },
+    price_check: { label: 'Price checking', weight: 0.18, dropMult: 1.65, intent: 0.09, focus: 0.5, color: '#5b4bb8' },
   },
   stages: [
     { id: 'cart', label: 'Cart review', headline: '3 items · $214.00 subtotal', from: 0, to: 3, drop: 0.0115, focus: 0.010, interactive: false },
     { id: 'shipping', label: 'Shipping details', headline: 'Where should this go?', from: 3, to: 6, drop: 0.0140, focus: -0.020, interactive: false },
-    { id: 'ship_cost', label: 'Shipping cost shown', headline: '+ $18.50 standard shipping', from: 6, to: 8, drop: 0.0290, focus: -0.055, interactive: false, reason: 'shipping_shock' },
-    { id: 'payment', label: 'Payment', headline: 'Card · PayPal · Klarna', from: 8, to: 11, drop: 0.0180, focus: -0.010, interactive: true },
+    { id: 'ship_cost', label: 'Shipping cost shown', headline: '+ ₹149 standard shipping', from: 6, to: 8, drop: 0.0290, focus: -0.055, interactive: false, reason: 'shipping_shock' },
+    { id: 'payment', label: 'Payment', headline: 'UPI · Card · Netbanking', from: 8, to: 11, drop: 0.0180, focus: -0.010, interactive: true },
     { id: 'confirm', label: 'Review & confirm', headline: 'Place your order', from: 11, to: 14, drop: 0.0060, focus: 0.030, interactive: false },
   ],
   economics: { unitValue: 214, winRate: 1, sessionCost: 3000, outcomeNoun: 'purchase' },
   events: { stage: 'step.change', join: 'shopper.enter', leave: 'shopper.abandon', signal: 'support.message', react: 'field.focus', deep: 'offer.accepted', save: 'agent.save', capture: 'capture.frame', nudge: 'nudge.operator' },
   reasons: { collapse: 'hesitation_spiral', idle: 'distraction', hard: 'comparison_shopping' },
   reactions: ['card_field', 'promo_field', 'address_edit', 'qty_change'],
-  lines: ['is there a discount code?', 'why is shipping so much?', 'do you ship to Ireland?', 'can I pay in instalments?', 'is this in stock?', 'what is the return window?', 'the promo code is not applying', 'can I change the delivery date?'],
+  lines: ['is there a discount code?', 'why is shipping so much?', 'do you deliver to Coimbatore?', 'can I pay in instalments?', 'is this in stock?', 'what is the return window?', 'the promo code is not applying', 'can I change the delivery date?'],
   nudges: {
     burst: (n, st) => `${n} carts abandoned on "${st.label}". This is the shipping-cost cliff - surface the free-shipping threshold above the fold.`,
     cliff: (p, st) => `Intent fell ${p} pts across the cohort. Pre-fill address from the profile and drop a field from the form.`,
@@ -121,7 +122,7 @@ export const checkout = withDynamics({
   levers: [
     { id: 'ship_upfront', label: 'Show shipping cost on the cart page', hypo: 'The cost is the shock, not the amount. Move it earlier and the cliff flattens.', dropMult: 0.74, focus: 0.045, at: 0, intent: 0.04, cost: 0, transfers: ['webinar'] },
     { id: 'guest_checkout', label: 'Guest checkout by default', hypo: 'Account creation is a wall in front of a purchase nobody asked to justify.', dropMult: 0.85, focus: 0.050, at: 0, intent: 0.03, cost: 0, transfers: ['onboarding'] },
-    { id: 'wallet_first', label: 'Lead with wallet payment', hypo: 'One tap beats sixteen fields on mobile.', dropMult: 0.88, focus: 0.035, at: 8, intent: 0.03, cost: 0, transfers: [] },
+    { id: 'upi_first', label: 'Lead with UPI', hypo: 'One tap beats sixteen fields on mobile, and UPI clears where cards decline.', dropMult: 0.88, focus: 0.035, at: 8, intent: 0.03, cost: 0, transfers: [] },
     { id: 'free_ship_bar', label: 'Free-shipping progress bar', hypo: 'A visible threshold converts the shock into a goal.', dropMult: 0.91, focus: 0.030, at: 0, intent: 0.05, cost: 90, transfers: ['onboarding'] },
     { id: 'exit_offer', label: 'Agent exit-intent offer', hypo: 'When the companion sees hesitation it fires a targeted save before the tab closes.', dropMult: 0.90, focus: 0, at: 2, intent: 0.04, cost: 170, rescue: 0.34, transfers: ['webinar', 'docs'] },
     { id: 'trust_badges', label: 'Payment trust row', hypo: 'Price-checkers need a reason to stop comparing.', dropMult: 0.96, focus: 0.020, at: 8, intent: 0.02, cost: 0, transfers: [] },
@@ -144,10 +145,10 @@ export const onboarding = withDynamics({
   clock: 'days', stageUnit: 86400, tickSeconds: 43200, horizon: 21, arrivalWindow: 172800,
   cohort: 320,
   segments: {
-    champion: { label: 'Champion', weight: 0.14, dropMult: 0.58, intent: 0.70, focus: 0.74, color: '#8cf27a' },
-    team_lead: { label: 'Team lead', weight: 0.24, dropMult: 0.86, intent: 0.46, focus: 0.60, color: '#35d0ff' },
-    solo_dev: { label: 'Solo dev', weight: 0.38, dropMult: 1.20, intent: 0.24, focus: 0.50, color: '#ffb547' },
-    tyre_kicker: { label: 'Tyre-kicker', weight: 0.24, dropMult: 1.70, intent: 0.05, focus: 0.34, color: '#b78cff' },
+    champion: { label: 'Champion', weight: 0.14, dropMult: 0.58, intent: 0.70, focus: 0.74, color: '#0d7a4f' },
+    team_lead: { label: 'Team lead', weight: 0.24, dropMult: 0.86, intent: 0.46, focus: 0.60, color: '#2563a8' },
+    solo_dev: { label: 'Solo dev', weight: 0.38, dropMult: 1.20, intent: 0.24, focus: 0.50, color: '#b0721a' },
+    tyre_kicker: { label: 'Tyre-kicker', weight: 0.24, dropMult: 1.70, intent: 0.05, focus: 0.34, color: '#5b4bb8' },
   },
   stages: [
     { id: 'signup', label: 'Signed up', headline: 'Account created, nothing built yet', from: 0, to: 2, drop: 0.030, focus: 0.020, interactive: false },
@@ -191,10 +192,10 @@ export const support = withDynamics({
   clock: 'hours', stageUnit: 3600, tickSeconds: 600, horizon: 8, arrivalWindow: 7200,
   cohort: 240,
   segments: {
-    p1: { label: 'P1 outage', weight: 0.08, dropMult: 2.10, intent: 0.72, focus: 0.55, color: '#ff4f68' },
-    bug: { label: 'Bug report', weight: 0.30, dropMult: 1.15, intent: 0.44, focus: 0.58, color: '#ffb547' },
-    howto: { label: 'How-to', weight: 0.42, dropMult: 0.72, intent: 0.30, focus: 0.68, color: '#35d0ff' },
-    billing: { label: 'Billing', weight: 0.20, dropMult: 0.90, intent: 0.38, focus: 0.62, color: '#8cf27a' },
+    p1: { label: 'P1 outage', weight: 0.08, dropMult: 2.10, intent: 0.72, focus: 0.55, color: '#b8203f' },
+    bug: { label: 'Bug report', weight: 0.30, dropMult: 1.15, intent: 0.44, focus: 0.58, color: '#b0721a' },
+    howto: { label: 'How-to', weight: 0.42, dropMult: 0.72, intent: 0.30, focus: 0.68, color: '#2563a8' },
+    billing: { label: 'Billing', weight: 0.20, dropMult: 0.90, intent: 0.38, focus: 0.62, color: '#0d7a4f' },
   },
   stages: [
     { id: 'triage', label: 'Triage', headline: 'Unassigned, waiting on a human', from: 0, to: 1.5, drop: 0.0125, focus: -0.020, interactive: false, reason: 'aged_in_triage' },
@@ -237,10 +238,10 @@ export const codereview = withDynamics({
   clock: 'days', stageUnit: 86400, tickSeconds: 21600, horizon: 6, arrivalWindow: 86400,
   cohort: 140,
   segments: {
-    tiny: { label: 'Under 50 lines', weight: 0.30, dropMult: 0.55, intent: 0.66, focus: 0.76, color: '#8cf27a' },
-    normal: { label: 'Normal', weight: 0.38, dropMult: 1.00, intent: 0.44, focus: 0.58, color: '#35d0ff' },
-    large: { label: 'Over 400 lines', weight: 0.22, dropMult: 1.75, intent: 0.24, focus: 0.40, color: '#ffb547' },
-    cross_team: { label: 'Cross-team', weight: 0.10, dropMult: 2.05, intent: 0.30, focus: 0.44, color: '#b78cff' },
+    tiny: { label: 'Under 50 lines', weight: 0.30, dropMult: 0.55, intent: 0.66, focus: 0.76, color: '#0d7a4f' },
+    normal: { label: 'Normal', weight: 0.38, dropMult: 1.00, intent: 0.44, focus: 0.58, color: '#2563a8' },
+    large: { label: 'Over 400 lines', weight: 0.22, dropMult: 1.75, intent: 0.24, focus: 0.40, color: '#b0721a' },
+    cross_team: { label: 'Cross-team', weight: 0.10, dropMult: 2.05, intent: 0.30, focus: 0.44, color: '#5b4bb8' },
   },
   stages: [
     { id: 'opened', label: 'Opened, awaiting reviewer', headline: 'No reviewer assigned yet', from: 0, to: 1, drop: 0.0140, focus: -0.020, interactive: false, reason: 'no_reviewer_assigned' },
@@ -283,10 +284,10 @@ export const docs = withDynamics({
   clock: 'mmss', stageUnit: 60, tickSeconds: 10, horizon: 18, arrivalWindow: 180,
   cohort: 520,
   segments: {
-    integrator: { label: 'Integrating now', weight: 0.20, dropMult: 0.62, intent: 0.64, focus: 0.74, color: '#8cf27a' },
-    evaluator: { label: 'Evaluating', weight: 0.28, dropMult: 0.95, intent: 0.40, focus: 0.58, color: '#35d0ff' },
-    searcher: { label: 'Landed from search', weight: 0.36, dropMult: 1.55, intent: 0.14, focus: 0.40, color: '#ffb547' },
-    debugger: { label: 'Debugging an error', weight: 0.16, dropMult: 1.10, intent: 0.52, focus: 0.66, color: '#b78cff' },
+    integrator: { label: 'Integrating now', weight: 0.20, dropMult: 0.62, intent: 0.64, focus: 0.74, color: '#0d7a4f' },
+    evaluator: { label: 'Evaluating', weight: 0.28, dropMult: 0.95, intent: 0.40, focus: 0.58, color: '#2563a8' },
+    searcher: { label: 'Landed from search', weight: 0.36, dropMult: 1.55, intent: 0.14, focus: 0.40, color: '#b0721a' },
+    debugger: { label: 'Debugging an error', weight: 0.16, dropMult: 1.10, intent: 0.52, focus: 0.66, color: '#5b4bb8' },
   },
   stages: [
     { id: 'landing', label: 'Landed on the page', headline: 'Quickstart — Agents', from: 0, to: 3, drop: 0.0270, focus: -0.010, interactive: false, reason: 'wrong_page' },

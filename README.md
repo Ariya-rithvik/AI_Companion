@@ -83,25 +83,61 @@ the in-page engine and the MCP tab says so.
 | **Experiments** | On the webinar, tick *Move pricing after Q&A*: it comes back **positive on ROI and negative on retention**. Raise or lower the run count and watch the interval tighten or widen — it is a real interval on the mean, not a spread. |
 | **Skills** | Three per surface, each with its evidence. Hit **try on → support** under a code-review skill: it re-runs on the queue and reports whether it held. |
 | **ROI** | *This surface* gives the waterfall. **All surfaces** is the point of the build. |
+| **Memory** | Hit **Record 3 runs**, then start a run. Patterns, cues and episodes appear with their evidence; during the run the cues fire into the console tagged FROM MEMORY, ahead of the thing they warn about. |
 | **MCP** | The live tool catalogue from `tools/list`, and the JSON-RPC traffic the UI just generated. |
 
 ## What the portfolio says
 
-Armed library vs baseline, 60 paired runs per arm per surface:
+Armed library vs baseline, 100 paired runs per arm per surface (`tools/seedskills.mjs`):
 
 | Surface | ROI lift | 90% CI | Retention | Outcomes |
 | --- | --- | --- | --- | --- |
-| Webinar | **+43.9%** | 39.5 … 48.3 | −5.1% | MQLs +44.5% |
-| Docs & content | **+36.1%** | 33.5 … 38.9 | +11.3% | integrations +34.1% |
-| Product onboarding | **+32.4%** | 29.3 … 35.5 | +8.5% | activations +23.9% |
-| Checkout funnel | **+24.7%** | 22.2 … 27.8 | +15.2% | purchases +24.8% |
-| Code review | **+14.7%** | 13.0 … 16.2 | +6.6% | merged PRs +10.8% |
-| Support queue | **+14.3%** | 13.5 … 15.1 | +4.3% | clean resolutions +10.9% |
+| Product onboarding | **+30.2%** | 27.7 … 32.7 | +8.3% | activations +22.2% |
+| Docs & content | **+24.8%** | 23.3 … 26.3 | +7.4% | integrations +26.3% |
+| Webinar | **+22.1%** | 20.2 … 24.1 | −9.0% | MQLs +20.4% |
+| Code review | **+13.5%** | 12.6 … 14.5 | +6.0% | merged PRs +10.0% |
+| Support queue | **+13.5%** | 12.8 … 14.1 | +4.4% | clean resolutions +10.3% |
+| Checkout funnel | **+9.2%** | 8.1 … 10.4 | +9.4% | purchases +7.1% |
 
 The spread is the finding, not the headline. Surfaces already running well — a queue resolving
 77% of tickets cleanly, a pipeline merging 79% of PRs — have little headroom, and the library
 is worth low double digits there. Leaky surfaces have far more. A companion that only watched
 webinars could not have told you that.
+
+## Memory — what makes it a companion
+
+A dashboard tells you what is happening now. A companion remembers the last time and warns you
+**before** it happens again. That loop lives in `engine/memory.mjs`:
+
+```
+remember(session)   a finished run is compressed into one episode
+consolidate()       episodes are mined for patterns that RECUR, not for one-offs
+cuesFor()           a pattern with a position becomes a cue timed to fire EARLY
+reinforce/decay     the next run either confirms the pattern or erodes it
+```
+
+Run the webinar three times and the companion goes from *"Watching. 1 of 3 runs recorded"* to:
+
+| | |
+| --- | --- |
+| **Pattern** | `"Pricing & packaging" is where you lose the most people` — 39 on average, usually around 29.5min, mostly attention collapse. Confidence 0.63, from 3/3 runs. |
+| **Cue** | fires at **26:15**, while the room is still in Q&A: *"Pricing & packaging is coming up. It has cost you 40 people on average — break it up before you get there."* |
+
+The cue arrives roughly three minutes ahead of the event. That head start is the entire point;
+a warning that lands together with the drop-off is just a slower dashboard.
+
+Three honesty rules are enforced in code, not described in docs:
+
+- **Nothing is asserted below three episodes.** The UI says "watching, 1 of 3" instead of a
+  confident sentence built on one run.
+- **Every pattern carries its denominator and its episode ids**, so any claim traces back to
+  the runs that produced it. Observational patterns are tagged as such and never presented as
+  causal.
+- **Patterns that stop reproducing decay and stop firing.** Memory that only accumulates and
+  never forgets becomes superstition.
+
+Memory persists in `localStorage` per surface, and each surface learns separately — the queue's
+patterns are not the webinar's. `Forget` on any pattern mutes it permanently.
 
 ## Call it as an agent
 
@@ -130,6 +166,7 @@ Tools: `surfaces_list` · `session_start` · `session_advance` · `session_statu
 engine/core.mjs        the kernel — actors, stages, hazard, outcomes, Monte Carlo. No surface knowledge.
 engine/surfaces.mjs    six surface packs. Pure data against one contract.
 engine/library.mjs     the shipped skills, with the evidence they were promoted on.
+engine/memory.mjs      episodes, patterns and timed cues carried between runs.
 server/mcp.mjs         Web MCP server (JSON-RPC over HTTP) + static host.
 web/                   the operator console.
 tools/calibrate.mjs    baseline + per-lever numbers for every surface.
@@ -144,7 +181,7 @@ armed skill → compounded report → cross-surface transfer. It is about 900 li
 `engine/`, and the same code runs in the browser, in the MCP server, and in the calibration
 harness.
 
-**The actors are simulated.** There is no Zoom, Stripe or GitHub SDK behind this, and the
+**The actors are simulated.** There is no live vendor SDK behind the six surfaces, and the
 numbers are not measured results. A real deployment would refit these constants on its own
 observation dataset after a handful of runs. Three things are deliberate rather than convenient:
 
@@ -158,7 +195,7 @@ observation dataset after a handful of runs. Three things are deliberate rather 
   would have been easy and dishonest.
 
 To wire a surface to reality, replace the tick loop with that system's event feed — Zoom
-participants, Stripe checkout events, GitHub PR webhooks, Zendesk tickets. The row schema, the
+participants, Razorpay checkout events, GitHub PR webhooks, Zendesk tickets. The row schema, the
 labels, the lab, the library and the transfer machinery do not change.
 
 ## Known edges

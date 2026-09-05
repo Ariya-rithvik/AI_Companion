@@ -1,0 +1,23 @@
+{
+  "name": "backstage-live",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Real observation layer for the Real-Time-Collaborative-Digital-Canvas meeting platform. No simulation.",
+  "scripts": {
+    "dev": "node --watch src/server/app.mjs",
+    "start": "node src/server/app.mjs",
+    "mcp": "node src/server/mcp.mjs",
+    "export": "node scripts/export-dataset.mjs",
+    "backfill": "node scripts/backfill-labels.mjs",
+    "power": "node src/experiments/power.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "mongoose": "^8.9.0",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": { "node": ">=20" }
+}

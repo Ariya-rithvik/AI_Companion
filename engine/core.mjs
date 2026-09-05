@@ -205,9 +205,18 @@ export function tick(s) {
   for (const a of activeOf(s)) {
     const sg = sf.segments[a.segment];
     const idle = (s.t - a.lastInteraction) / sf.stageUnit;
-    const fatigue = sf.fatigue * Math.min(idle, sf.idleCap) + sf.drift * pos;
 
-    a.focus += (st.focus / 8) + (lFocus / 40) - fatigue + (rnd() - 0.5) * 0.045;
+    // Focus mean-reverts toward a baseline that sags across the run, rather than
+    // being decremented without bound. The old form subtracted a drift term that
+    // grew with position, so by two thirds of the way through every run the whole
+    // cohort was pinned at the 0.02 clamp - which made the focus vital, the
+    // sparkline and the at-risk hazard ranking all read the same for everyone.
+    const sag = 1 - sf.focusSag * (pos / sf.horizon);
+    const target = sf.segments[a.segment].focus * sag;
+    const idlePenalty = sf.fatigue * Math.min(idle, sf.idleCap);
+
+    a.focus += (target - a.focus) * sf.reversion
+      + (st.focus / 8) + (lFocus / 40) - idlePenalty + (rnd() - 0.5) * 0.045;
 
     if (rescue && a.focus < 0.30 && rnd() < rescue.rescue / 4) {
       a.focus += 0.26; a.saves++; a.lastInteraction = s.t;

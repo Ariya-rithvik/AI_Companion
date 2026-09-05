@@ -25,13 +25,45 @@ const exportNames = src =>
 /** Strip module syntax so the source can live inside one <script type="module">. */
 const flatten = src => src.replace(/^import[\s\S]*?from\s+'[^']+';\s*$/gm, '').replace(/^export\s+/gm, '');
 
-const engine = ['engine/surfaces.mjs', 'engine/core.mjs', 'engine/library.mjs'];
+const engine = ['engine/surfaces.mjs', 'engine/core.mjs', 'engine/memory.mjs',
+  'engine/library.mjs', 'web/companion.js'];
 const sources = engine.map(f => ({ f, src: read(f), names: exportNames(read(f)) }));
 for (const m of sources) {
   if (!m.names.length) throw new Error('no exports found in ' + m.f + ' — bundling would silently break');
 }
 
-const coreNames = sources.find(m => m.f.endsWith('core.mjs')).names;
+/* Flattening puts every module in one scope, so a name declared twice silently
+   breaks the bundle. Catch it here instead of in the browser. */
+const declared = new Map();
+const topLevel = src => [...src.matchAll(/^(?:export\s+)?(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
+for (const m of sources) {
+  for (const n of topLevel(m.src)) {
+    if (declared.has(n)) {
+      throw new Error(`duplicate top-level name "${n}" in ${m.f} and ${declared.get(n)} — `
+        + 'rename one; flattened modules share a scope');
+    }
+    declared.set(n, m.f);
+  }
+}
+
+/* Build a namespace object for each `import * as X from './engine/Y.mjs'`. */
+const allExported = new Set(sources.flatMap(m => m.names)
+  .concat(sources.flatMap(m => [...m.src.matchAll(/^export\s+class\s+(\w+)/gm)].map(x => x[1]))));
+for (const [, names] of read('web/app.js').matchAll(/import \{([^}]+)\} from '[^']+';/g)) {
+  for (const n of names.split(',').map(x => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) {
+    if (!allExported.has(n)) {
+      throw new Error('app.js imports "' + n + '" but no inlined module exports it — '
+        + 'add its file to the `engine` list in this bundler');
+    }
+  }
+}
+
+const NS = [...read('web/app.js').matchAll(/import \* as (\w+) from '\.\.\/engine\/(\w+)\.mjs'/g)]
+  .map(([, alias, mod]) => {
+    const src = sources.find(m => m.f.endsWith(mod + '.mjs'));
+    if (!src) throw new Error('app.js imports engine/' + mod + '.mjs but the bundler does not inline it');
+    return 'const ' + alias + ' = { ' + src.names.join(', ') + ' };';
+  });
 
 const appSrc = read('web/app.js');
 const cssSrc = read('web/style.css');
@@ -39,8 +71,8 @@ const htmlSrc = read('web/index.html');
 
 const inlined = [
   sources.map(m => '/* ── ' + m.f + ' ── */\n' + flatten(m.src)).join('\n'),
-  '/* ── kernel namespace, as app.js imports it ── */',
-  'const E = { ' + coreNames.join(', ') + ' };',
+  '/* ── namespaces, exactly as app.js imports them ── */',
+  ...NS,
 ].join('\n');
 
 const app = appSrc.replace(/^import[\s\S]*?from\s+'[^']+';\s*$/gm, '');

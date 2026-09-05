@@ -416,7 +416,19 @@ function rpc(msg) {
 
 /* ──────────────────────────────── HTTP ─────────────────────────────────── */
 
-const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml' };
+/*
+ * charset=utf-8 is not optional on any of these. Without it a browser guesses,
+ * and on a page full of box-drawing characters and emoji it guesses wrong —
+ * which is how this served a wall of mojibake while the file on disk was fine.
+ */
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml; charset=utf-8',
+};
 
 const json = (res, code, obj) => {
   const s = JSON.stringify(obj);
@@ -437,7 +449,7 @@ const server = http.createServer(async (req, res) => {
     const file = path.join(ROOT, 'web/meeting-room.html');
     return fs.readFile(file, (e, data) => {
       if (e) return res.writeHead(404).end('meeting-room.html not found');
-      res.writeHead(200, { 'content-type': 'text/html' }).end(data);
+      res.writeHead(200, { 'content-type': MIME['.html'] }).end(data);
     });
   }
 
@@ -529,6 +541,9 @@ const server = http.createServer(async (req, res) => {
     if (!out.length) return res.writeHead(202).end();
     return json(res, 200, Array.isArray(msg) ? out : out[0]);
   }
+
+  // Lingo demo archived — ui.js and tools.js were never committed (see archive/lingo/)
+  if (url.pathname.startsWith('/lingo')) return res.writeHead(404).end('not found');
 
   let p = url.pathname === '/' ? '/web/index.html' : url.pathname;
   if (!p.startsWith('/web') && !p.startsWith('/engine') && !p.startsWith('/dist')) p = '/web' + p;

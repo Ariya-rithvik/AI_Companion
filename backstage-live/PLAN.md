@@ -119,6 +119,17 @@ in the console within 2 seconds, and **only** in the host's window.
 `assign.mjs` randomises real meetings into arms **before** they run; `analyze.mjs` refuses to
 report an effect until the pre-registered N is reached.
 
+### Phase 7 — Memory across meetings
+`src/memory/store.mjs`, `src/memory/consolidate.mjs`, `src/memory/cues.mjs`
+
+This is what makes it a companion rather than a dashboard, and it is already built and working
+in the prototype (`../engine/memory.mjs`) — port it, do not redesign it. See
+`src/memory/README.md`.
+
+**Acceptance:** run four real meetings. Before the fifth, the console shows patterns with their
+denominators, and during it at least one cue fires **before** the stage it warns about, tagged
+as coming from memory and citing the meetings it came from.
+
 ---
 
 ## 4. LLM choices — cost matters, this runs per meeting

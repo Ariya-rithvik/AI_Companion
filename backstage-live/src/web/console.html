@@ -1,0 +1,19 @@
+<!--
+  Host console. START BY COPYING ../../web/index.html and ../../web/style.css -
+  the layout, the HUD, the dataset table and the CSS are all reusable as-is,
+  because they only ever read the row schema.
+
+  CHANGES NEEDED:
+   - delete the surface picker and the speed controls (1x / 4x / 16x). There is no
+     speed control on reality
+   - delete the Experiments tab's Monte Carlo runner. Replace with a read-only
+     experiment status panel: registered / running / n so far / n required
+   - the ROI tab becomes "Measurements": either a real effect with its CI, or the
+     honest "underpowered - 7 of 30 meetings" state. Build that empty state first,
+     it is what you will actually be showing for the first month
+   - add a REPORT tab for the analyst output, with every finding's cited_seqs
+     rendered as clickable links that scroll to those rows in the Dataset tab.
+     That link is the most persuasive thing in the whole product: the claim and the
+     evidence, one click apart
+   - the recording indicator must reflect real consent state, not a decoration
+-->

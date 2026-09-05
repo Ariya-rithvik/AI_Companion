@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -62,8 +62,9 @@
     <button data-tab="lab">Experiments</button>
     <button data-tab="skills">Skills</button>
     <button data-tab="roi">ROI</button>
+    <button data-tab="memory">Memory</button>
     <button data-tab="mcp">MCP</button>
-    <button data-tab="meeting" id="tabMeeting" style="color:#34d399">🎥 Meeting</button>
+    <button data-tab="meeting" id="tabMeeting">🎥 Meeting</button>
   </nav>
 
   <div class="speedbox">
@@ -71,6 +72,7 @@
     <button class="spd on" data-spd="4">4×</button>
     <button class="spd" data-spd="16">16×</button>
     <button class="btn tiny" id="btnReset">Restart</button>
+    <button class="btn primary tiny" id="btnCompanion" title="Host-only overlay">⬡ AI Companion</button>
   </div>
 </header>
 
@@ -113,6 +115,8 @@
       <span class="host-only">visible only to you</span>
     </div>
 
+    <div class="brief" id="brief"></div>
+
     <div class="vitals">
       <div class="vital"><span id="vRoomL">Live</span><b id="vRoom">0</b><i id="vRoomD">&nbsp;</i></div>
       <div class="vital"><span>Retention</span><b id="vRet">—</b><i>of peak</i></div>
@@ -124,10 +128,10 @@
       <div class="sparkhead"><span id="focusLabel">Cohort focus</span><span id="sparkNow">—</span></div>
       <svg id="sparkSvg" viewBox="0 0 300 60" preserveAspectRatio="none">
         <path id="sparkArea" fill="url(#sg)" d=""></path>
-        <path id="sparkLine" fill="none" stroke="#35d0ff" stroke-width="1.6" d=""></path>
+        <path id="sparkLine" fill="none" stroke="currentColor" stroke-width="1.6" d=""></path>
         <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#35d0ff" stop-opacity=".38"/>
-          <stop offset="100%" stop-color="#35d0ff" stop-opacity="0"/>
+          <stop offset="0%" stop-color="currentColor" stop-opacity=".38"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
         </linearGradient></defs>
       </svg>
     </div>
@@ -241,6 +245,26 @@
       </div>
     </div>
     <div id="roiBody"><div class="empty big">Run a report to compare arms.</div></div>
+  </div>
+</main>
+
+<!-- ═════════════════════════════ MEMORY ═════════════════════════════ -->
+<main class="view" id="v-memory">
+  <div class="pane">
+    <div class="panehead">
+      <div>
+        <h2>Memory</h2>
+        <p>What the companion carries between runs. A run becomes an episode, episodes that
+           repeat become patterns, and a pattern with a position becomes a cue that fires
+           <b>before</b> the thing happens again. Nothing is asserted until it has happened
+           three times.</p>
+      </div>
+      <div class="panebtns">
+        <button class="btn" id="btnSeedMem">Record 3 runs</button>
+        <button class="btn" id="btnForgetAll">Forget all</button>
+      </div>
+    </div>
+    <div id="memBody"></div>
   </div>
 </main>
 

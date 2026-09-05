@@ -7,7 +7,7 @@
  * after any change to surfaces.mjs, or hit "Re-test library" in the console —
  * these are claims with provenance, not constants.
  *
- * Measured 2026-09-04 · n=100 per arm · seed 3.
+ * Measured 2026-09-04 (focus model v2) · n=100 per arm · seed 3.
  */
 
 import { surfaceById } from './surfaces.mjs';
@@ -15,45 +15,45 @@ import { surfaceById } from './surfaces.mjs';
 /** [leverId, roiLift, ci90, retentionLift, outcomeLift] */
 const MEASURED = {
   webinar: [
-    ['poll_at_8', 21.27, [19.21, 23.32], 4.54, 18.98],
-    ['pricing_after_qa', 15.88, [14.08, 17.74], -12.30, 14.17],
-    ['exit_intent', 10.11, [7.23, 13.24], 8.08, 13.11],
+    ['poll_at_8', 12.66, [10.84, 14.53], 3.11, 11.63],
+    ['pricing_after_qa', 8.70, [7.23, 10.25], -10.51, 7.99],
+    ['intro_trim', 5.61, [3.79, 7.70], 2.08, 5.12],
   ],
   checkout: [
-    ['exit_offer', 14.39, [12.52, 16.24], 5.27, 16.81],
-    ['ship_upfront', 5.49, [4.31, 6.64], 5.88, 4.00],
-    ['guest_checkout', 4.34, [3.09, 5.65], 3.69, 3.16],
+    ['ship_upfront', 6.75, [5.62, 7.88], 5.37, 5.16],
+    ['guest_checkout', 4.53, [3.26, 5.65], 3.25, 3.46],
+    ['upi_first', 1.06, [0.68, 1.44], 0.87, 0.80],
   ],
   onboarding: [
-    ['guided_setup', 26.48, [23.78, 29.21], 5.95, 19.52],
-    ['invite_prompt', 2.50, [0.58, 4.42], 1.25, 1.73],
-    ['sample_data', 2.18, [0.39, 3.93], 3.02, 1.49],
+    ['guided_setup', 26.49, [24.21, 28.82], 5.27, 19.42],
+    ['invite_prompt', 2.83, [1.42, 4.18], 1.40, 2.03],
+    ['sample_data', 2.28, [0.45, 4.14], 2.25, 1.57],
   ],
   support: [
-    ['auto_triage', 6.80, [6.13, 7.44], 2.69, 5.21],
-    ['kb_suggest', 5.19, [4.69, 5.73], 1.00, 3.97],
-    ['sla_surface', 4.38, [3.76, 5.01], 1.42, 3.35],
+    ['auto_triage', 5.96, [5.39, 6.56], 2.48, 4.58],
+    ['kb_suggest', 4.94, [4.47, 5.39], 0.91, 3.79],
+    ['sla_surface', 3.34, [2.89, 3.87], 1.18, 2.57],
   ],
   codereview: [
-    ['auto_assign', 7.28, [6.27, 8.25], 3.35, 5.36],
-    ['size_gate', 6.89, [6.00, 7.80], 2.71, 5.09],
-    ['review_budget', 4.46, [3.68, 5.24], 1.69, 3.28],
+    ['auto_assign', 7.03, [6.09, 8.03], 3.49, 5.19],
+    ['size_gate', 6.18, [5.23, 7.14], 2.12, 4.55],
+    ['review_budget', 3.75, [3.05, 4.47], 1.19, 2.77],
   ],
   docs: [
-    ['inline_sandbox', 26.56, [24.91, 28.31], 5.93, 26.95],
-    ['runnable_first', 4.82, [3.20, 6.31], 3.72, 3.38],
-    ['error_router', 1.78, [0.51, 3.22], 1.38, 1.20],
+    ['inline_sandbox', 21.53, [20.14, 22.97], 4.53, 23.65],
+    ['runnable_first', 4.26, [2.95, 5.69], 2.76, 3.09],
+    ['error_router', 3.35, [2.20, 4.50], 1.85, 2.44],
   ],
 };
 
 /** Stacked library lift per surface, for the ROI tab's headline before it recomputes. */
 export const MEASURED_STACK = {
-  webinar: { lift: 42.12, ci: [38.85, 45.66] },
-  checkout: { lift: 25.71, ci: [23.48, 28.01] },
-  onboarding: { lift: 32.92, ci: [30.41, 35.37] },
-  support: { lift: 13.80, ci: [13.13, 14.41] },
-  codereview: { lift: 14.24, ci: [13.16, 15.36] },
-  docs: { lift: 34.70, ci: [32.68, 36.69] },
+  webinar: { lift: 22.13, ci: [20.23, 24.06] },
+  checkout: { lift: 9.22, ci: [8.14, 10.42] },
+  onboarding: { lift: 30.18, ci: [27.69, 32.70] },
+  support: { lift: 13.48, ci: [12.79, 14.14] },
+  codereview: { lift: 13.53, ci: [12.62, 14.47] },
+  docs: { lift: 24.78, ci: [23.27, 26.34] },
 };
 
 export function seedLibrary() {
@@ -74,7 +74,7 @@ export function seedLibrary() {
           simulations: 100, roi_lift_pct: lift, ci90,
           retention_lift_pct: ret, outcome_lift_pct: outcome,
         },
-        promoted_at: '2026-09-04T09:00:00Z',
+        promoted_at: '2026-09-04T14:30:00Z',
         times_applied: 0,
         armed: true,
       });

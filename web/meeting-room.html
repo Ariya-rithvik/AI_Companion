@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Backstage Live Meeting</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
-  --bg:#060910;--bg2:#0d1117;--bg3:#141c28;--bg4:#1a2436;
+  --bg:#0e1317;--bg2:#151b21;--bg3:#1b232a;--bg4:#232d36;
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);
-  --accent:#4f8ef7;--green:#34d399;--red:#f87171;--amber:#fbbf24;
-  --purple:#a78bfa;--text:#e2e8f0;--muted:#64748b;
+  --accent:#2bb3a6;--green:#3cb87f;--red:#ec5f7c;--amber:#d99a3c;
+  --purple:#8f83e0;--text:#e7ecef;--muted:#6d7e8a;
   --font:'Inter',system-ui,sans-serif;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,6 +217,28 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .roi-val{font-weight:600;font-family:monospace}
 .roi-val.pos{color:var(--green)}
 
+/* Recording */
+.rec-btn{display:none;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;
+  border:1px solid var(--red);background:rgba(236,95,124,.1);color:var(--red);
+  font-size:12px;cursor:pointer;font-family:var(--font);font-weight:600;transition:all .15s}
+.rec-btn:hover{background:rgba(236,95,124,.2)}
+.rec-btn.recording{background:rgba(236,95,124,.25);border-color:var(--red)}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block}
+.rec-btn.recording .rec-dot{animation:blink 1s infinite}
+.rec-elapsed{font-family:monospace;font-size:11px;color:var(--red);min-width:36px}
+
+.rec-banner{
+  position:fixed;top:0;left:0;right:0;z-index:150;
+  background:rgba(220,38,38,.92);color:#fff;
+  text-align:center;font-size:13px;font-weight:600;
+  padding:6px 12px;display:none;
+  animation:slideDown .3s ease;
+  backdrop-filter:blur(6px);
+}
+.rec-banner.show{display:block}
+.rec-banner-dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:#fff;margin-right:8px;animation:blink 1s infinite}
+
 /* Scrollbars */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -259,6 +282,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
 </div>
 
+<!-- ── RECORDING BANNER (visible to all participants) ──────────────── -->
+<div class="rec-banner" id="recBanner">
+  <span class="rec-banner-dot"></span>⏺ This meeting is being recorded
+</div>
+
 <!-- ── AI NUDGE ─────────────────────────────────────────────────────── -->
 <div id="nudgeOverlay">
   <div class="nudge-hdr" id="nudgeHdr">🤖 AI COMPANION NUDGE</div>
@@ -290,6 +318,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <span id="hostBadge" class="host-badge" style="display:none">HOST</span>
     <span class="tb-spacer"></span>
     <span class="tb-time" id="tbTimer">00:00</span>
+    <button class="rec-btn" id="btnRec" style="display:none" title="Record meeting">
+      <span class="rec-dot"></span>
+      <span id="recLabel">REC</span>
+      <span class="rec-elapsed" id="recElapsed"></span>
+    </button>
     <button class="tb-btn" id="btnParticipants">👥 <span id="pCount">1</span></button>
     <button class="tb-btn" id="btnRoi" style="display:none">📊 ROI</button>
     <button class="tb-btn" id="btnNudge" style="display:none">🤖 Nudge</button>
@@ -349,10 +382,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <!-- Socket.io (same server, different path) -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* ─────────────────────────────────────────────────────────────────
-   meeting.html — Real 6-participant meeting with AI companion
-   Adapted from: github.com/VENKATARAMANA-T/Real-Time-Collaborative-Digital-Canvas
-   ───────────────────────────────────────────────────────────────── */
+/*
+ * Meeting logic lives inline deliberately. web/meeting.js was a 652-line
+ * orphan nothing loaded — deleted to prevent confusion. Do not extract
+ * this script into a module without verifying every selector and socket
+ * event against the HTML above.
+ *
+ * ─────────────────────────────────────────────────────────────────
+ *   meeting.html — Real 6-participant meeting with AI companion
+ *   Adapted from: github.com/VENKATARAMANA-T/Real-Time-Collaborative-Digital-Canvas
+ * ───────────────────────────────────────────────────────────────── */
 
 // ── State ────────────────────────────────────────────────────────
 const S = {
@@ -365,6 +404,11 @@ const S = {
   isHost: false,
   camOn: true,
   micOn: true,
+  // Recording state
+  recorder: null,
+  recChunks: [],
+  recStartTime: null,
+  recTimerInterval: null,
   startTime: null,
   dataset: [],
   nudgeCount: 0,
@@ -374,7 +418,7 @@ const S = {
 
 const $ = id => document.getElementById(id);
 const EMOJIS = ['👍','❤️','😂','🎉','🔥','🙌','👏','😮'];
-const COLORS = ['#4f8ef7','#34d399','#f472b6','#fbbf24','#a78bfa','#f87171'];
+const COLORS = ['#2bb3a6','#3cb87f','#f472b6','#d99a3c','#8f83e0','#ec5f7c'];
 
 const ICE = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -408,21 +452,44 @@ $('btnCreate').onclick = async () => {
   $('btnCreate').textContent = 'Creating…';
   $('btnCreate').disabled = true;
 
-  const socket = io({ path: '/meeting-socket', transports: ['websocket','polling'] });
-  await new Promise((res, rej) => { socket.once('connect', res); socket.once('connect_error', rej); });
+  /*
+   * Every exit path resets the button. The previous version had no try/catch,
+   * no timeout and no else branch, so a connect_error rejected an un-awaited
+   * promise and left "Creating…" disabled forever with no message on screen —
+   * the user just sees a dead button. A failure the operator cannot see is
+   * worse than a failure, so each one now names itself.
+   */
+  const reset = () => { $('btnCreate').textContent = '✨ Create New'; $('btnCreate').disabled = false; };
+  const fail = msg => { $('joinErr').style.color = 'var(--red)'; $('joinErr').textContent = msg; reset(); };
 
-  socket.emit('create_meeting', { hostName: name, surface: 'webinar' }, data => {
-    if (data.ok) {
-      $('meetingIn').value = data.meetingId;
-      $('passIn').value = data.password;
-      $('joinErr').textContent = '';
-      $('joinErr').style.color = 'var(--green)';
-      $('joinErr').textContent = `✓ Room created! ID: ${data.meetingId}  Password: ${data.password}`;
-      socket.disconnect();
-    }
-    $('btnCreate').textContent = '✨ Create New';
-    $('btnCreate').disabled = false;
-  });
+  let socket;
+  try {
+    socket = io({ path: '/meeting-socket', transports: ['websocket', 'polling'] });
+
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('server did not respond in 8s')), 8000);
+      socket.once('connect', () => { clearTimeout(t); res(); });
+      socket.once('connect_error', e => { clearTimeout(t); rej(e); });
+    });
+
+    const data = await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('no reply to create_meeting in 8s')), 8000);
+      socket.emit('create_meeting', { hostName: name, surface: 'webinar' }, d => { clearTimeout(t); res(d); });
+    });
+
+    if (!data || !data.ok) throw new Error(data?.error || 'server refused to create the room');
+
+    $('meetingIn').value = data.meetingId;
+    $('passIn').value = data.password;
+    $('joinErr').style.color = 'var(--green)';
+    $('joinErr').textContent = `✓ Room created! ID: ${data.meetingId}  Password: ${data.password}`;
+    reset();
+  } catch (e) {
+    fail('Could not create the room: ' + (e?.message || e) + '. Is the server running?');
+  } finally {
+    // never leak the socket, on success or failure
+    if (socket) socket.disconnect();
+  }
 };
 
 // ── Join meeting ──────────────────────────────────────────────────
@@ -438,24 +505,37 @@ async function join() {
 
   $('btnJoin').textContent = 'Joining…'; $('btnJoin').disabled = true;
 
-  const socket = io({ path: '/meeting-socket', transports: ['websocket','polling'] });
-  S.socket = socket;
-  S.myName = name;
-  S.meetingId = meetingId;
+  /*
+   * Same pattern as btnCreate: reset + fail helpers, try/catch wrapping the
+   * entire flow, 8-second timeout on every socket round-trip, button reset on
+   * every exit path, and the socket is never left dangling on failure.
+   */
+  const reset = () => { $('btnJoin').textContent = '🚀 Join Meeting'; $('btnJoin').disabled = false; };
+  const fail = msg => { $('joinErr').style.color = 'var(--red)'; $('joinErr').textContent = msg; reset(); };
 
-  await new Promise((res, rej) => {
-    socket.once('connect', res);
-    socket.once('connect_error', rej);
-    setTimeout(() => rej(new Error('Timeout')), 8000);
-  }).catch(e => { $('joinErr').textContent = e.message; $('joinErr').style.color = 'var(--red)'; $('btnJoin').textContent = '🚀 Join Meeting'; $('btnJoin').disabled = false; throw e; });
+  let socket;
+  try {
+    socket = io({ path: '/meeting-socket', transports: ['websocket', 'polling'] });
+    S.socket = socket;
+    S.myName = name;
+    S.meetingId = meetingId;
 
-  socket.emit('join_meeting', { meetingId, password, name }, async data => {
-    if (!data.ok) {
-      $('joinErr').textContent = data.error || 'Failed';
-      $('joinErr').style.color = 'var(--red)';
-      $('btnJoin').textContent = '🚀 Join Meeting';
-      $('btnJoin').disabled = false;
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('server did not respond in 8s')), 8000);
+      socket.once('connect', () => { clearTimeout(t); res(); });
+      socket.once('connect_error', e => { clearTimeout(t); rej(e); });
+    });
+
+    const data = await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('no reply to join_meeting in 8s')), 8000);
+      socket.emit('join_meeting', { meetingId, password, name }, d => { clearTimeout(t); res(d); });
+    });
+
+    if (!data || !data.ok) {
+      // Server returned an error — disconnect and show it
       socket.disconnect();
+      S.socket = null;
+      fail(data?.error || 'server refused to join the room');
       return;
     }
 
@@ -471,6 +551,7 @@ async function join() {
     $('tbMeetingId').textContent = meetingId;
     if (S.isHost) {
       $('hostBadge').style.display = 'inline';
+      $('btnRec').style.display = 'flex';
       $('btnRoi').style.display = 'inline';
       $('btnNudge').style.display = 'inline';
       $('btnOpenTabs').style.display = 'inline';
@@ -564,12 +645,38 @@ async function join() {
     };
     $('btnRoi').onclick = () => $('roiPanel').classList.toggle('show');
     $('btnOpenTabs').onclick = () => openAttendeeTabs();
-    $('btnEnd').onclick = () => {
-      if (window.confirm('End this meeting and generate the analysis?')) {
-        socket.emit('host_control', { action: 'end_meeting', meetingId });
+
+    // btnEnd: try/catch + timeout pattern, same as btnCreate
+    $('btnEnd').onclick = async () => {
+      if (!window.confirm('End this meeting and generate the analysis?')) return;
+      $('btnEnd').disabled = true; $('btnEnd').textContent = 'Ending…';
+      try {
+        await new Promise((res, rej) => {
+          const t = setTimeout(() => rej(new Error('no reply in 8s')), 8000);
+          socket.emit('host_control', { action: 'end_meeting', meetingId }, () => { clearTimeout(t); res(); });
+          // If there's no ack, the meeting_ended event will fire anyway
+          socket.once('meeting_ended', () => { clearTimeout(t); res(); });
+        });
+      } catch (e) {
+        showToast('Could not end meeting: ' + (e?.message || e));
+      } finally {
+        $('btnEnd').disabled = false; $('btnEnd').textContent = 'End';
       }
     };
-  });
+
+    // ── Recording banner events (all participants) ──────────────
+    socket.on('recording_started', () => {
+      $('recBanner').classList.add('show');
+    });
+    socket.on('recording_stopped', () => {
+      $('recBanner').classList.remove('show');
+    });
+
+  } catch (e) {
+    fail('Could not join: ' + (e?.message || e) + '. Is the server running?');
+    // Never leave a socket connected after a failure
+    if (socket) { socket.disconnect(); S.socket = null; }
+  }
 }
 
 function openAttendeeTabs() {
@@ -667,8 +774,25 @@ function removeTile(socketId) { document.getElementById('tile-' + socketId)?.rem
 // ── Controls ──────────────────────────────────────────────────────
 $('ctrlCam').onclick = () => setCam(!S.camOn);
 $('ctrlMic').onclick = () => setMic(!S.micOn);
-$('btnLeaveTop').onclick = leaveMeeting;
-$('btnLeave').onclick = leaveMeeting;
+$('btnRec').onclick = () => { S.recorder ? stopRecording() : startRecording(); };
+// btnLeaveTop + btnLeave: wrapped so a failure shows a readable message and
+// never leaves the button dead. leaveMeeting() itself is safe to call multiple times.
+$('btnLeaveTop').onclick = async () => {
+  $('btnLeaveTop').disabled = true; $('btnLeaveTop').textContent = 'Leaving…';
+  try { await leaveMeeting(); } catch (e) {
+    showToast('Could not leave cleanly: ' + (e?.message || e));
+  } finally {
+    $('btnLeaveTop').disabled = false; $('btnLeaveTop').textContent = 'Leave';
+  }
+};
+$('btnLeave').onclick = async () => {
+  $('btnLeave').disabled = true;
+  try { await leaveMeeting(); } catch (e) {
+    showToast('Could not leave cleanly: ' + (e?.message || e));
+  } finally {
+    $('btnLeave').disabled = false;
+  }
+};
 
 function setCam(on) {
   S.camOn = on;
@@ -900,8 +1024,138 @@ function startTimer() {
   }, 1000);
 }
 
+// ── Recording ─────────────────────────────────────────────────────
+/*
+ * Only the host may record. The button is hidden for non-hosts (CSS display:none
+ * unless S.isHost). Follows the btnCreate error pattern: reset + fail helpers,
+ * try/catch, readable messages for every failure mode.
+ */
+async function startRecording() {
+  const reset = () => {
+    $('btnRec').classList.remove('recording');
+    $('recLabel').textContent = 'REC';
+    $('recElapsed').textContent = '';
+  };
+  const fail = msg => {
+    showToast('⚠ ' + msg);
+    reset();
+  };
+
+  try {
+    // Build the stream to record: local audio + video, plus screen if active
+    const tracks = [];
+    if (S.localStream) {
+      S.localStream.getTracks().forEach(t => { if (t.readyState === 'live') tracks.push(t); });
+    }
+    if (S.screenStream) {
+      S.screenStream.getVideoTracks().forEach(t => { if (t.readyState === 'live') tracks.push(t); });
+    }
+    if (!tracks.length) {
+      fail('No audio or video available to record. Allow mic/camera permissions and try again.');
+      return;
+    }
+
+    const stream = new MediaStream(tracks);
+
+    // Negotiate mime type
+    const mimeTypes = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp8',
+      'video/webm',
+    ];
+    const mimeType = mimeTypes.find(m => MediaRecorder.isTypeSupported(m));
+    if (!mimeType) {
+      fail('Your browser does not support any WebM recording format.');
+      return;
+    }
+
+    S.recChunks = [];
+    S.recorder = new MediaRecorder(stream, { mimeType });
+
+    S.recorder.ondataavailable = e => { if (e.data.size > 0) S.recChunks.push(e.data); };
+
+    S.recorder.onerror = e => {
+      fail('Recording error: ' + (e.error?.message || 'unknown'));
+      S.recorder = null;
+    };
+
+    S.recorder.onstop = () => {
+      // Build blob and offer download
+      if (S.recChunks.length) {
+        const blob = new Blob(S.recChunks, { type: mimeType });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.download = `meeting-${S.meetingId || 'unknown'}-${dateStr}.webm`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      }
+      S.recorder = null;
+      S.recChunks = [];
+    };
+
+    S.recorder.start(1000); // 1-second chunks
+    S.recStartTime = Date.now();
+
+    // UI: pulsing dot + elapsed timer
+    $('btnRec').classList.add('recording');
+    $('recLabel').textContent = 'STOP';
+    S.recTimerInterval = setInterval(() => {
+      if (!S.recStartTime) return;
+      const s = Math.floor((Date.now() - S.recStartTime) / 1000);
+      $('recElapsed').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }, 500);
+
+    // Notify all participants
+    S.socket?.emit('recording_started', { meetingId: S.meetingId });
+    $('recBanner').classList.add('show');
+    showToast('⏺ Recording started');
+
+  } catch (e) {
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      fail('Permission denied. Allow mic/camera access to record.');
+    } else {
+      fail('Could not start recording: ' + (e.message || e));
+    }
+  }
+}
+
+function stopRecording() {
+  clearInterval(S.recTimerInterval);
+  S.recTimerInterval = null;
+  S.recStartTime = null;
+
+  $('btnRec').classList.remove('recording');
+  $('recLabel').textContent = 'REC';
+  $('recElapsed').textContent = '';
+
+  if (S.recorder && S.recorder.state !== 'inactive') {
+    try {
+      S.recorder.stop();
+    } catch (e) {
+      // stop-while-already-stopped — ignore gracefully
+      showToast('Recording was already stopped.');
+      S.recorder = null;
+      S.recChunks = [];
+    }
+  } else {
+    showToast('No active recording to stop.');
+    S.recorder = null;
+    S.recChunks = [];
+  }
+
+  // Notify all participants
+  S.socket?.emit('recording_stopped', { meetingId: S.meetingId });
+  $('recBanner').classList.remove('show');
+}
+
 // ── Leave ─────────────────────────────────────────────────────────
 function leaveMeeting() {
+  // Stop recording if active before leaving
+  if (S.recorder && S.recorder.state !== 'inactive') {
+    try { S.recorder.stop(); } catch {}
+  }
   S.socket?.emit('leave_meeting', { meetingId: S.meetingId });
   S.localStream?.getTracks().forEach(t => t.stop());
   S.screenStream?.getTracks().forEach(t => t.stop());
@@ -929,5 +1183,6 @@ if (p.has('p')) $('passIn').value = p.get('p');
 if (p.has('n')) $('nameIn').value = p.get('n');
 if (p.get('auto') === '1') setTimeout(join, 300);
 </script>
+<script type="module" src="./companion-meeting.js"></script>
 </body>
 </html>
