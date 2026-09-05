@@ -276,7 +276,12 @@ npm start                        # operator console :8787 · meeting /meeting ·
 node --env-file=.env razorpay/recover.mjs --live
 ```
 
-Demo runbook: **[DEMO.md](DEMO.md)** · Pitch, one-pager, video script: **[docs/](docs/)**
+**On Windows, double-click [`demo.cmd`](demo.cmd)** instead — a menu for every command above.
+It switches the console to UTF-8 first, without which the rupee figures render as mojibake, and
+checks your Node version and dependencies before offering the menu.
+
+Demo runbook: **[DEMO.md](DEMO.md)** · Shooting guide: **[docs/SHOOTING-GUIDE.md](docs/SHOOTING-GUIDE.md)**
+· Pitch and one-pager: **[docs/](docs/)**
 
 ---
 
