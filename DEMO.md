@@ -94,9 +94,25 @@ believe the rest.
 
 Read C7747 aloud. Then: *"zero claims dropped — every sentence traces to evidence."*
 
-### 5 · Live — `node --env-file=.env razorpay/recover.mjs --live`
+### 5 · Live — only if your keys authenticate
 
-Real test-mode payment links, keyed by idempotency key.
+```bash
+node --env-file=.env razorpay/recover.mjs --live
+```
+
+**Run this once before you record.** With working test keys it creates three real
+test-mode payment links. With missing or placeholder keys it prints:
+
+> **LIVE ABORTED — the keys in .env do not authenticate.** `Razorpay 401: Authentication failed`
+
+That is a safe outcome, not a crash — but do not discover it on stage. If you do
+not have working keys, **cut this step** and say the honest version instead:
+
+> "The adapter is written against the REST API and its signature verification is
+> unit tested — eight cases including a tampered body. The batch you just saw
+> needs no network at all."
+
+Do not claim live links were created unless you watched three `OK` lines appear.
 
 ### 6 · One failure, handled
 

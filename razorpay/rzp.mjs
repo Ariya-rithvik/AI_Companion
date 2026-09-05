@@ -152,6 +152,35 @@ export async function fetchPayment(id) {
 }
 
 /**
+ * Check that the configured keys actually authenticate, before we try to move
+ * money with them.
+ *
+ * WHY THIS EXISTS: for most of this project `.env` held placeholder keys that
+ * had the right SHAPE — `rzp_test_` prefix, plausible length — and every call
+ * returned 401. Without a preflight the batch loop just printed the same
+ * authentication error once per row, which reads like a bug in our code rather
+ * than a missing credential. One cheap call up front turns that into one clear
+ * sentence.
+ *
+ * GET /v1/payments?count=1 is the cheapest authenticated read there is. It
+ * needs no prior objects to exist — a brand-new test account returns an empty
+ * collection with 200, which is a pass.
+ *
+ * @returns {Promise<{ ok: boolean, mode?: 'test'|'live'|'unknown', reason?: string }>}
+ *          Never throws. A dead credential is an expected outcome, not an error.
+ */
+export async function preflight() {
+  const mode = KEY_ID.startsWith('rzp_live_') ? 'live'
+    : KEY_ID.startsWith('rzp_test_') ? 'test' : 'unknown';
+  try {
+    await rzpFetch('GET', '/v1/payments?count=1');
+    return { ok: true, mode };
+  } catch (e) {
+    return { ok: false, mode, reason: String(e?.message ?? e) };
+  }
+}
+
+/**
  * Verify a Razorpay webhook signature.
  * Uses HMAC-SHA256 and constant-time comparison via crypto.timingSafeEqual.
  *

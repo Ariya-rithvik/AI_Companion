@@ -115,7 +115,7 @@ npm test                         # 42 safety properties (25 policy + 17 pacer)
 npm run check                    # dependency invariants, 0 errors across 34 modules
 npm start                        # operator console :8787 · meeting room /meeting · MCP /mcp
 
-# with test-mode keys in .env — creates real payment links
+# optional: only if your test keys authenticate (see .env.example)
 node --env-file=.env razorpay/recover.mjs --live
 ```
 
@@ -123,19 +123,26 @@ node --env-file=.env razorpay/recover.mjs --live
 
 ## What is real and what is not
 
-**Real:** the method, the evaluation, the governance, and the Razorpay integration
-(`razorpay/rzp.mjs` — orders, payment links, HMAC webhook verification with `timingSafeEqual`;
-8 signature cases pass, including tampered body and wrong secret). It is the only payment
-integration in the repo, written directly against the REST API with `node:crypto`.
+**Real:** the method, the evaluation, and the governance. All of it runs offline —
+`npm run recover`, `npm test`, and `npm run check` touch no network and need no keys.
 
-**Synthetic:** the customers. Labelled as such in the benchmark header, on screen, and here.
-`featurise()` consumes an ordinary event list — `order.created`, `payment.captured`,
-`payment.failed`, `coupon.applied` — which is exactly what Razorpay webhooks emit. Point it at
-real data and nothing downstream changes.
+**Real, and precisely this much:** `razorpay/rzp.mjs` is the only payment integration
+in the repo — orders, payment links, and HMAC webhook verification with
+`timingSafeEqual`, written directly against the REST API with `node:crypto` and no
+payment SDK. The signature path is **proven**: 8 cases pass, including a tampered
+body, a wrong secret, and non-hex garbage. The HTTP path is **written and correct
+but unproven** — we have never held a working Razorpay credential, so no live call
+in this project has ever returned 200. `--live` now checks the credential first and
+says so out loud rather than implying otherwise.
 
-**We did not tune until it passed.** The first run printed `THESIS DOES NOT HOLD`. The budget
-model was wrong — sized per contact while ignoring the incentive — so the model was fixed, not
-the threshold. The harness still prints that verdict on failure.
+**Synthetic:** the customers. Labelled as such in the benchmark header, on screen,
+and here. `featurise()` consumes an ordinary event list — `order.created`,
+`payment.captured`, `payment.failed`, `coupon.applied` — which is exactly what
+Razorpay webhooks emit. Point it at real data and nothing downstream changes.
+
+**We did not tune until it passed.** The first run printed `THESIS DOES NOT HOLD`.
+The budget model was wrong — sized per contact while ignoring the incentive — so the
+model was fixed, not the threshold. The harness still prints that verdict on failure.
 
 ---
 

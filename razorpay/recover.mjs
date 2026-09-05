@@ -475,20 +475,42 @@ if (!LIVE) {
   console.log('  Each approved row would create one test-mode payment link, keyed by its');
   console.log('  idempotency key so a re-run cannot double-charge anyone.');
 } else {
-  const { createPaymentLink } = await import('./rzp.mjs');
-  const sample = gated.approved.slice(0, 3);
-  console.log('  LIVE — creating ' + sample.length + ' test-mode payment links');
-  for (const o of sample) {
-    try {
-      const link = await createPaymentLink({
-        amount: Math.round(o.amount * (1 - INCENTIVE) * 100),         // paise
-        customer: { name: o.id, email: o.id.toLowerCase() + '@example.test' },
-        notes: { order_id: o.order_id, idempotency_key: o.key, reason: o.reason },
-      });
-      console.log('   OK  ' + o.id + '  ' + (link.short_url ?? link.id));
-    } catch (e) {
-      // A failed action is recorded verbatim. We never synthesise a success ref.
-      console.log('   ERR ' + o.id + '  ' + (e?.message ?? e));
+  const { createPaymentLink, preflight } = await import('./rzp.mjs');
+
+  // Prove the credential works before using it to move money. Placeholder keys
+  // carry the right prefix and the right length; only a real call tells them
+  // apart from a working one.
+  const pf = await preflight();
+  if (!pf.ok) {
+    console.log('  LIVE ABORTED — the keys in .env do not authenticate.');
+    console.log('      ' + pf.reason);
+    console.log('');
+    console.log('  Get test-mode keys: dashboard.razorpay.com -> Settings -> API Keys');
+    console.log('  -> Generate Test Key. Put BOTH halves in .env:');
+    console.log('      RAZORPAY_KEY_ID=rzp_test_...      (shown once)');
+    console.log('      RAZORPAY_KEY_SECRET=...           (shown once - copy it now)');
+    console.log('');
+    console.log('  Nothing above this line depended on the network. The measured');
+    console.log('  result stands; only the link creation below is unavailable.');
+  } else if (pf.mode === 'live') {
+    // Refuse real money. This harness targets synthetic customers.
+    console.log('  LIVE ABORTED — those are LIVE keys (rzp_live_). This batch runs against');
+    console.log('  synthetic customers and must never touch a real account. Use test keys.');
+  } else {
+    const sample = gated.approved.slice(0, 3);
+    console.log('  LIVE (test mode) — creating ' + sample.length + ' payment links');
+    for (const o of sample) {
+      try {
+        const link = await createPaymentLink({
+          amount: Math.round(o.amount * (1 - INCENTIVE) * 100),         // paise
+          customer: { name: o.id, email: o.id.toLowerCase() + '@example.test' },
+          notes: { order_id: o.order_id, idempotency_key: o.key, reason: o.reason },
+        });
+        console.log('   OK  ' + o.id + '  ' + (link.short_url ?? link.id));
+      } catch (e) {
+        // A failed action is recorded verbatim. We never synthesise a success ref.
+        console.log('   ERR ' + o.id + '  ' + (e?.message ?? e));
+      }
     }
   }
 }
