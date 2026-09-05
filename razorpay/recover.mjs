@@ -307,19 +307,39 @@ for (const [name, m] of rows) {
     + rp((d >= 0 ? '+' : '') + inr(d), 12));
 }
 
-const all = rows.find(r => r[0] === 'Everyone, link + offer')[1];
+const nothing = rows.find(r => r[0] === 'Contact nobody')[1];
 const prop = rows.find(r => r[0].startsWith('Propensity'))[1];
 const pol = rows.find(r => r[0].startsWith('Policy'))[1];
 
+/*
+ * Compare against the BEST blanket policy, not a chosen one.
+ *
+ * This previously compared only against "Everyone, link + offer" and called it
+ * "contacting everyone". That was the flattering half of the comparison: the
+ * link-only campaign is the stronger baseline of the two, and against it the
+ * margin is much smaller. Anyone reading the table above would have seen the
+ * headline disagree with the rows it sits under.
+ *
+ * Naming the baseline is the fix, and beating the better one is a stricter test.
+ */
+const blankets = rows.filter(r => r[0].startsWith('Everyone')).map(r => ({ name: r[0], m: r[1] }));
+const best = blankets.reduce((a, b) => (b.m.net > a.m.net ? b : a));
+
 console.log('');
 console.log('  ' + '-'.repeat(76));
-if (pol.net > all.net && pol.net > prop.net) {
-  console.log('  RECOVERED ' + inr(pol.net - all.net) + ' MORE than contacting everyone, while contacting '
-    + Math.round((1 - pol.contacted / all.contacted) * 100) + '% fewer customers');
-  console.log('  and ' + inr(pol.net - prop.net) + ' more than propensity targeting at the same volume.');
+if (pol.net > best.m.net && pol.net > prop.net) {
+  console.log('  vs doing nothing        ' + rp('+' + inr(pol.net - nothing.net), 12)
+    + '   the headline number');
+  console.log('  vs propensity targeting ' + rp('+' + inr(pol.net - prop.net), 12)
+    + '   that policy is underwater by ' + inr(Math.abs(prop.net - nothing.net)));
+  console.log('  ' + pad('vs ' + best.name.replace('Everyone, ', 'blanket '), 24)
+    + rp('+' + inr(pol.net - best.m.net), 12)
+    + '   strongest baseline, at ' + Math.round((1 - pol.contacted / best.m.contacted) * 100)
+    + '% fewer contacts');
 } else {
   console.log('  Gated policy did NOT win on this run. Reporting it rather than tuning until it does.');
-  console.log('  gated ' + inr(pol.net) + ' · propensity ' + inr(prop.net) + ' · everyone ' + inr(all.net));
+  console.log('  gated ' + inr(pol.net) + ' · propensity ' + inr(prop.net)
+    + ' · best blanket (' + best.name + ') ' + inr(best.m.net));
 }
 
 /* ───────────────────── 5 · AUDIT TRAIL ───────────────────── */
