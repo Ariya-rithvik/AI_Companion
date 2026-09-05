@@ -1,212 +1,171 @@
-# Backstage — a companion for any work surface
+# Recovery Agent — Razorpay AI Buildathon, Track 03
 
-An AI companion that attaches to whatever you are running — a live call, a checkout, a trial
-cohort, a support queue, a review pipeline, a docs page — watches everything, turns what it
-sees into a labelled dataset, runs experiments on that dataset, and keeps the ones that win.
+**A revenue-recovery agent that knows when *not* to spend money.**
 
-Four things, in one loop, on six surfaces:
+It recovered **₹1,10,811 more** than contacting every failed payment, while contacting
+**65% fewer customers**.
 
-1. **Observe.** An operator-only console renders beside the work. The people on the other side
-   see their meeting, their checkout, their queue exactly as they do today. Arrivals, exits,
-   dwell, signals, and a derived focus / churn-hazard / intent estimate land only in your window.
-2. **Record.** Every signal becomes one labelled row, and all six surfaces share one schema.
-   Labels are back-filled when the run closes — that is what makes the file trainable.
-3. **Experiment.** Replay a run hundreds of times with and without a change, on matched seeds,
-   and read the mean lift with a bootstrap 90% interval on that mean.
-4. **Promote.** An experiment whose interval clears zero becomes a **skill**: an armed rule that
-   carries its own evidence. Skills compound, and a skill learned on one surface can be tested
-   against another.
+```bash
+npm install
+npm run recover        # the submission — no API keys needed
+```
 
-Everything above is an MCP tool, and every tool takes a `surface`.
+---
 
-## Why WebMCP fits this project
+## The problem
 
-Meeting participants create the evidence through ordinary work: joining, speaking, chatting,
-reacting, and leaving. WebMCP lets an agent inspect that live evidence through typed tools,
-ask for the right slice of the labelled dataset, and compare an intervention without taking
-control away from the people in the meeting. People create the signals; agents turn those
-signals into analysis, recommendations, experiments, and reusable skills.
+A payment fails. Every dunning tool does the same thing: contact everyone.
 
-The live meeting room is available at `/meeting`, while the operator console and its WebMCP
-endpoint are available at `/` and `/mcp`. The meeting event feed is real WebRTC plus Socket.io;
-the six-surface experiment lab remains explicitly labelled as a calibrated model rather than
-measured production results.
+That is wrong in two directions at once, and both are ordinary in real payment data.
 
-## Why one model covers all six
+- **Self-recoverers** retry on their own within a day. A twenty-minute bank outage is not a lost
+  customer. Contacting them costs money and recovers nothing that was not already coming back.
+- **Dunning-averse customers cancel when chased.** Contacting them has *negative* value — you
+  spend money to lose the subscription.
 
-Each surface turns out to be the same shape underneath: **a cohort of actors moves through
-ordered stages, each stage carries a hazard of dropping out, engagement raises intent, and
-intent plus survival produce an outcome worth money.**
+A propensity model — *"who is likely to pay?"* — sees neither. It ranks self-recoverers at the
+very top of the contact list, which is the single most expensive mistake available.
 
-| Surface | Actor | Drop looks like | Outcome |
-| --- | --- | --- | --- |
-| Webinar / live meeting | attendee | leaving at the pricing slide | MQL |
-| Checkout funnel | shopper | abandoning at the shipping cost | purchase |
-| Product onboarding | trial | never reaching a first run | activation |
-| Support queue | ticket | ageing out to escalation | clean resolution |
-| Code review pipeline | pull request | stalling in review | merged PR |
-| Docs & content | reader | bouncing off the config wall | integration |
+**We measured it.** Held-out split, every policy compared at identical contact volume so a win
+cannot come from simply spending more:
 
-So `engine/core.mjs` knows about actors, stages, hazard, signals and outcomes — and nothing
-about webinars. `engine/surfaces.mjs` supplies the nouns, stage table, levers and economics.
-Adding a seventh surface is a data change.
+| Policy | Contacted | Spent | Net margin | vs doing nothing |
+| --- | ---: | ---: | ---: | ---: |
+| Contact nobody | 0 | ₹0 | ₹9,21,780 | — |
+| Everyone, link only | 1,555 | ₹9,330 | ₹11,34,764 | +₹2,12,983 |
+| Everyone, link + offer | 1,555 | ₹2,19,964 | ₹10,43,838 | +₹1,22,057 |
+| **Propensity** top 552 | 552 | ₹1,20,237 | ₹8,98,452 | **−₹23,329** |
+| **This agent** | **552** | ₹76,269 | **₹11,54,648** | **+₹2,32,868** |
+
+**Propensity targeting loses money.** It is worse than doing nothing at all.
+
+---
+
+## The five things Track 03 asks for
+
+**1 · Detect revenue at risk** — 3,109 failed payments, ₹90,71,631 at risk, by failure reason.
+
+**2 · Determine the right intervention** — not just *whether* to act. A payment link costs ₹6;
+adding a discount costs hundreds. The agent chooses per customer and sent offers to only
+**505 of 552**.
+
+**3 · Execute a bounded workflow** — a budget that halts the batch mid-list, approval tiers
+(auto <₹500 · one-click <₹5,000 · two-person above), and sha256 idempotency checked against our
+own ledger *before* any upstream call.
+
+**4 · Measured money across a batch** — the table above. Plus calibration: the model predicts
+within **2.97pp**, rank correlation **0.916**.
+
+**5 · Compliant escalation, stopping rules, audit trail** — every decision carries its reasoning
+*and the evidence behind every number*.
+
+> **C7747 · CONTACT — link with offer.** Payment of ₹13,243 failed on three ds abandoned, after 3
+> attempts. Left alone, this customer recovers **22%** of the time. Contacting them lifts recovery
+> to **54%**, an incremental **+32.1pp**. They have completed 7 prior payments, 100% by UPI. They
+> have never used a coupon — discounting risks training a full-price customer to wait.
+
+A validator drops any sentence containing a number that is not in the evidence list.
+**0 dropped: every sentence traces to evidence.**
+
+---
+
+## It found the behaviour it was never told about
+
+```
+archetype        in batch  contacted  offered   true uplift
+nudge_needed          518        80%      73%       +33.0pp   wants to pay, needs the link
+hard_fail             383        34%      33%        +5.5pp   card or funds genuinely dead
+self_recoverer        431         2%       0%        +2.0pp   retries unprompted within 24h
+annoyed               223         0%       0%       -11.5pp   cancels when chased
+```
+
+**Zero percent** of the customers who cancel when chased were contacted. The model saw only
+payment history and failure reason — never these labels.
+
+---
+
+## Governance
+
+A **pacer** — pure rules, no model calls, individually testable — watches state a prompt cannot
+see and refuses to finalise on shaky ground.
+
+```
+D1  nudge  an offer whose brief shows no arithmetic
+D2  halt   contacting someone whose estimated effect is negative
+D4  halt   expected value <= 0, even when uplift is high
+B4  halt   even ONE customer contacted who gets worse when chased
+B5  halt   Qini <= 0 — do not pretend this is targeting
+```
+
+On our own run it catches nothing, because the earlier gates already did. Pointed at the
+propensity list — the one that lost ₹23,329 — **121 of 552 would be halted.**
+
+Every money action: a failed adapter call records the **verbatim upstream error** and keeps a
+**null external reference**. We never synthesise a success. An adapter returning success with
+nothing to point at is recorded as a failure.
+
+---
 
 ## Run it
 
 ```bash
-node server/mcp.mjs
+npm run recover                  # detect - qualify - decide - govern - execute - measure - audit
+node razorpay/calibration.mjs    # predicted vs actually delivered, by decile
+npm test                         # 42 safety properties (25 policy + 17 pacer)
+npm run check                    # dependency invariants, 0 errors across 34 modules
+npm start                        # operator console :8787 · meeting room /meeting · MCP /mcp
+
+# with test-mode keys in .env — creates real payment links
+node --env-file=.env razorpay/recover.mjs --live
 ```
 
-```
-console   http://localhost:8787/
-web mcp   http://localhost:8787/mcp   (18 tools, protocol 2025-06-18)
-surfaces  webinar, checkout, onboarding, support, codereview, docs
-```
+---
 
-Node 18+. No dependencies, no install step.
+## What is real and what is not
 
-For a single file you can double-click or host anywhere:
+**Real:** the method, the evaluation, the governance, and the Razorpay integration
+(`razorpay/rzp.mjs` — orders, payment links, HMAC webhook verification with `timingSafeEqual`;
+8 signature cases pass, including tampered body and wrong secret). It is the only payment
+integration in the repo, written directly against the REST API with `node:crypto`.
 
-```bash
-node tools/bundle.mjs
-```
+**Synthetic:** the customers. Labelled as such in the benchmark header, on screen, and here.
+`featurise()` consumes an ordinary event list — `order.created`, `payment.captured`,
+`payment.failed`, `coupon.applied` — which is exactly what Razorpay webhooks emit. Point it at
+real data and nothing downstream changes.
 
-`dist/backstage-demo.html` inlines all four modules. With no server reachable it falls back to
-the in-page engine and the MCP tab says so.
+**We did not tune until it passed.** The first run printed `THESIS DOES NOT HOLD`. The budget
+model was wrong — sized per contact while ignoring the incentive — so the model was fixed, not
+the threshold. The harness still prints that verdict on failure.
 
-## The demo, in order
-
-| Tab | What to show |
-| --- | --- |
-| **Live** | Pick a surface in the modal. On a webinar you get attendee tiles greying out; on the other five you get the survivor flow board filling stage by stage with the top drop reason. Same console, six vocabularies. |
-| **Dataset** | Hundreds of rows per run with `features` and back-filled `label` — and switching surface changes only the vocabulary, never the schema. JSONL and CSV export. |
-| **Experiments** | On the webinar, tick *Move pricing after Q&A*: it comes back **positive on ROI and negative on retention**. Raise or lower the run count and watch the interval tighten or widen — it is a real interval on the mean, not a spread. |
-| **Skills** | Three per surface, each with its evidence. Hit **try on → support** under a code-review skill: it re-runs on the queue and reports whether it held. |
-| **ROI** | *This surface* gives the waterfall. **All surfaces** is the point of the build. |
-| **Memory** | Hit **Record 3 runs**, then start a run. Patterns, cues and episodes appear with their evidence; during the run the cues fire into the console tagged FROM MEMORY, ahead of the thing they warn about. |
-| **MCP** | The live tool catalogue from `tools/list`, and the JSON-RPC traffic the UI just generated. |
-
-## What the portfolio says
-
-Armed library vs baseline, 100 paired runs per arm per surface (`tools/seedskills.mjs`):
-
-| Surface | ROI lift | 90% CI | Retention | Outcomes |
-| --- | --- | --- | --- | --- |
-| Product onboarding | **+30.2%** | 27.7 … 32.7 | +8.3% | activations +22.2% |
-| Docs & content | **+24.8%** | 23.3 … 26.3 | +7.4% | integrations +26.3% |
-| Webinar | **+22.1%** | 20.2 … 24.1 | −9.0% | MQLs +20.4% |
-| Code review | **+13.5%** | 12.6 … 14.5 | +6.0% | merged PRs +10.0% |
-| Support queue | **+13.5%** | 12.8 … 14.1 | +4.4% | clean resolutions +10.3% |
-| Checkout funnel | **+9.2%** | 8.1 … 10.4 | +9.4% | purchases +7.1% |
-
-The spread is the finding, not the headline. Surfaces already running well — a queue resolving
-77% of tickets cleanly, a pipeline merging 79% of PRs — have little headroom, and the library
-is worth low double digits there. Leaky surfaces have far more. A companion that only watched
-webinars could not have told you that.
-
-## Memory — what makes it a companion
-
-A dashboard tells you what is happening now. A companion remembers the last time and warns you
-**before** it happens again. That loop lives in `engine/memory.mjs`:
-
-```
-remember(session)   a finished run is compressed into one episode
-consolidate()       episodes are mined for patterns that RECUR, not for one-offs
-cuesFor()           a pattern with a position becomes a cue timed to fire EARLY
-reinforce/decay     the next run either confirms the pattern or erodes it
-```
-
-Run the webinar three times and the companion goes from *"Watching. 1 of 3 runs recorded"* to:
-
-| | |
-| --- | --- |
-| **Pattern** | `"Pricing & packaging" is where you lose the most people` — 39 on average, usually around 29.5min, mostly attention collapse. Confidence 0.63, from 3/3 runs. |
-| **Cue** | fires at **26:15**, while the room is still in Q&A: *"Pricing & packaging is coming up. It has cost you 40 people on average — break it up before you get there."* |
-
-The cue arrives roughly three minutes ahead of the event. That head start is the entire point;
-a warning that lands together with the drop-off is just a slower dashboard.
-
-Three honesty rules are enforced in code, not described in docs:
-
-- **Nothing is asserted below three episodes.** The UI says "watching, 1 of 3" instead of a
-  confident sentence built on one run.
-- **Every pattern carries its denominator and its episode ids**, so any claim traces back to
-  the runs that produced it. Observational patterns are tagged as such and never presented as
-  causal.
-- **Patterns that stop reproducing decay and stop firing.** Memory that only accumulates and
-  never forgets becomes superstition.
-
-Memory persists in `localStorage` per surface, and each surface learns separately — the queue's
-patterns are not the webinar's. `Forget` on any pattern mutes it permanently.
-
-## Call it as an agent
-
-```bash
-curl -s localhost:8787/mcp -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
-       "params":{"name":"skill_transfer",
-                 "arguments":{"skill_id":"skill_codereview:auto_assign","to":"support"}}}'
-```
-
-```json
-{ "transferable": true, "from": "codereview", "to": "support",
-  "source_skill": "Auto-assign a reviewer on open", "source_lift_pct": 7.28,
-  "target_lever": "auto_triage", "target_label": "Companion auto-triage on arrival",
-  "target_lift_pct": 6.4, "ci90": [5.75, 7.03], "verdict": "keep" }
-```
-
-Tools: `surfaces_list` · `session_start` · `session_advance` · `session_status` ·
-`observe_stream` · `capture_moment` · `dataset_query` · `dataset_export` ·
-`experiment_levers` · `experiment_run` · `experiment_list` · `skill_list` · `skill_promote` ·
-`skill_arm` · `skill_transfer` · `roi_report` · `roi_portfolio` · `nudge_operator`
+---
 
 ## Layout
 
 ```
-engine/core.mjs        the kernel — actors, stages, hazard, outcomes, Monte Carlo. No surface knowledge.
-engine/surfaces.mjs    six surface packs. Pure data against one contract.
-engine/library.mjs     the shipped skills, with the evidence they were promoted on.
-engine/memory.mjs      episodes, patterns and timed cues carried between runs.
-server/mcp.mjs         Web MCP server (JSON-RPC over HTTP) + static host.
-web/                   the operator console.
-tools/calibrate.mjs    baseline + per-lever numbers for every surface.
-tools/seedskills.mjs   regenerates engine/library.mjs from measurement.
-tools/bundle.mjs       inline everything into dist/.
+razorpay/          the submission
+  recover.mjs        the batch run
+  uplift.mjs         incremental response model, Qini, quadrants
+  calibration.mjs    predicted vs delivered
+  policy.mjs         action ledger: idempotency, approval tiers, audit
+  pacer.mjs          governance rules
+  explain.mjs        cited decision briefs
+  rzp.mjs            Razorpay test-mode adapter
+  *.test.mjs         42 safety properties
+
+docs/              pitch, architecture diagram, video script
+web/  server/      operator console, live meeting room, Web MCP server (18 tools)
+engine/            the cohort / stage / hazard model the benchmark runs on
+tools/             dependency graph, build invariants, encoding checks
+plan/              design notes for the production build — specification only, no code
 ```
 
-## What is real and what is simulated
+Demo runbook: **[DEMO.md](DEMO.md)** · Pitch and video script: **[docs/](docs/)**
 
-The pipeline is real: observation → labelled rows → paired Monte-Carlo → promotion gate →
-armed skill → compounded report → cross-surface transfer. It is about 900 lines across
-`engine/`, and the same code runs in the browser, in the MCP server, and in the calibration
-harness.
+---
 
-**The actors are simulated.** There is no live vendor SDK behind the six surfaces, and the
-numbers are not measured results. A real deployment would refit these constants on its own
-observation dataset after a handful of runs. Three things are deliberate rather than convenient:
+## A second surface, built on the same engine
 
-- **Effects were tuned down, not up.** Most single levers are worth single digits. Only a
-  compounded library reaches the thirties, and each stacked skill is damped `0.86×`.
-- **The promotion gate really rejects.** The first version of it gated on the *spread* of
-  individual runs — a prediction interval, which never shrinks with more runs. That is the
-  wrong statistic twice over: it rejects real effects and makes the "runs" control decorative.
-  It now bootstraps a confidence interval on the mean, so `n` genuinely matters.
-- **The portfolio is uneven on purpose.** Forcing all six surfaces to the same headline number
-  would have been easy and dishonest.
-
-To wire a surface to reality, replace the tick loop with that system's event feed — Zoom
-participants, Razorpay checkout events, GitHub PR webhooks, Zendesk tickets. The row schema, the
-labels, the lab, the library and the transfer machinery do not change.
-
-## Known edges
-
-- `outcomeScore` treats anyone still present mid-run as fully retained, so the live
-  **Exp. outcomes** vitals reads as a projection and only settles at close.
-- The MCP server keeps one session per surface in memory. Multi-tenant would need a session map
-  keyed on `Mcp-Session-Id`, which the endpoint already accepts as a header.
-- `GET /mcp` opens an SSE channel and heartbeats, but no server-initiated notifications are
-  pushed through it yet.
-- `skill_transfer` maps a source lever to its target counterpart by the `transfers` declaration
-  on each lever. That is a hand-authored adjacency, not a learned one.
-
-# AI_Companion
+The operator console (`npm start`) applies the same observe → dataset → experiment → skill loop
+to live meetings: a floating companion overlay, real WebRTC rooms, and cross-session memory that
+fires a cue *before* the drop-off it warns about. It shares `engine/` with the recovery agent and
+is worth thirty seconds of a demo — but the Track 03 submission is `npm run recover`.
